@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IIM Indore · Term 4 Schedule</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3349;
+    --accent:#4f6ef7;--accent-dim:#2a3a8c;--text:#e8eaf6;--muted:#7b82a8;
+    --quiz:#f59e0b;--exam:#ef4444;--changed:#10b981;--radius:10px;
+  }
+  body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+  /* ── LOADING ── */
+  #loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-label{font-size:13px;color:var(--muted)}
+
+  /* ── LOGIN ── */
+  #login-screen{min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2.5rem;width:100%;max-width:420px}
+  .iim-logo{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase;margin-bottom:1.5rem}
+  .login-card h1{font-size:22px;font-weight:600;margin-bottom:.4rem}
+  .login-card p{color:var(--muted);font-size:13px;margin-bottom:2rem;line-height:1.6}
+  .input-group{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+  .input-group label{font-size:12px;color:var(--muted);letter-spacing:.05em}
+  .input-group input{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;color:var(--text);font-family:'Sora',sans-serif;font-size:14px;outline:none;transition:border-color .15s;width:100%}
+  .input-group input:focus{border-color:var(--accent)}
+  .btn-primary{width:100%;background:var(--accent);color:white;border:none;border-radius:var(--radius);padding:.8rem;font-size:14px;font-weight:500;cursor:pointer;margin-top:.5rem;transition:opacity .15s;font-family:'Sora',sans-serif}
+  .btn-primary:hover{opacity:.88}
+  .error-msg{color:var(--exam);font-size:12px;margin-top:.75rem;display:none}
+  .student-hint{font-size:11px;color:var(--muted);margin-top:.5rem}
+  .recent-chip{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:.6rem .8rem;cursor:pointer;transition:border-color .15s}
+  .recent-chip:hover{border-color:var(--accent)}
+  .recent-chip-name{font-size:13px;font-weight:500;color:var(--text)}
+  .recent-chip-roll{font-size:11px;color:var(--muted);margin-top:1px}
+  .recent-chip-arrow{font-size:13px;color:var(--accent)}
+  .auto-loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+
+  /* ── APP ── */
+  #app{display:none}
+  .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .topbar-left{display:flex;align-items:center;gap:1rem}
+  .topbar-brand{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.15em;color:var(--accent);text-transform:uppercase}
+  .user-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.3rem .8rem;font-size:12px;color:var(--muted)}
+  .user-pill span{color:var(--text);font-weight:500}
+  .logout-btn{background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-size:12px;padding:.35rem .8rem;cursor:pointer;font-family:'Sora',sans-serif}
+  .logout-btn:hover{color:var(--text);border-color:var(--muted)}
+  .tabs{display:flex;gap:.25rem;padding:1rem 1.5rem 0;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto}
+  .tab{padding:.6rem 1.2rem;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;transition:color .15s;user-select:none;white-space:nowrap}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+  .tab:hover:not(.active){color:var(--text)}
+  .content{padding:1.5rem;max-width:860px;margin:0 auto}
+
+  /* ── DATE NAV ── */
+  .date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+  .date-display{text-align:center}
+  .date-display .day-name{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .date-display .date-full{font-size:17px;font-weight:600;margin-top:2px}
+  .nav-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);padding:.5rem 1rem;cursor:pointer;font-size:13px;font-family:'Sora',sans-serif;transition:all .15s}
+  .nav-btn:hover{color:var(--text);border-color:var(--muted)}
+
+  /* ── STATS ── */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;text-align:center}
+  .stat-card .stat-num{font-size:22px;font-weight:600}
+  .stat-card .stat-lbl{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* ── SLOT CARDS ── */
+  .slot-list{display:flex;flex-direction:column;gap:.6rem}
+  .slot-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1.1rem;display:flex;align-items:flex-start;gap:.9rem;position:relative;transition:border-color .15s}
+  .slot-card:hover{border-color:var(--accent-dim)}
+  .slot-card.is-quiz{border-left:3px solid var(--quiz)}
+  .slot-card.is-exam{border-left:3px solid var(--exam)}
+  .slot-card.is-now{border-color:var(--accent);background:#1a1d35}
+  .slot-card.is-clash{border:1px solid var(--exam);background:#2a1418}
+  .slot-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);min-width:80px;padding-top:2px;line-height:1.6}
+  .slot-main{flex:1;min-width:0}
+  .slot-subject{font-size:14px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .slot-subject-full{font-size:11px;color:var(--muted);margin-bottom:4px}
+  .slot-meta{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;letter-spacing:.03em}
+  .badge-room{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+  .badge-slot{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+  .badge-quiz{background:#422006;color:var(--quiz);border:1px solid #713f12}
+  .badge-exam{background:#450a0a;color:#fca5a5;border:1px solid #7f1d1d}
+  .badge-now{background:var(--accent-dim);color:#a5b4fc;border:1px solid var(--accent)}
+  .badge-clash{background:#450a0a;color:#fca5a5;border:1px solid var(--exam);font-weight:700}
+  .today-badge{display:inline-block;background:var(--accent);color:white;font-size:9px;padding:1px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;font-weight:600;letter-spacing:.05em}
+
+  /* ── LEGEND ── */
+  .legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;padding:.6rem .9rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+  .legend-item{display:flex;align-items:center;gap:.35rem;font-size:11px;color:var(--muted)}
+  .legend-dot{width:8px;height:8px;border-radius:50%}
+
+  /* ── EMPTY ── */
+  .empty-state{text-align:center;padding:3rem 1rem;color:var(--muted)}
+  .empty-state .empty-icon{font-size:32px;margin-bottom:.75rem}
+  .empty-state p{font-size:13px}
+
+  /* ── TERM CALENDAR ── */
+  .month-group{margin-bottom:2rem}
+  .month-header{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem;padding-bottom:.4rem;border-bottom:1px solid var(--border)}
+  .calendar-day{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.5rem;overflow:hidden}
+  .calendar-day-header{display:flex;align-items:center;justify-content:space-between;padding:.7rem 1rem;cursor:pointer;user-select:none;transition:background .15s}
+  .calendar-day-header:hover{background:var(--surface2)}
+  .calendar-day-header.today-header{background:#1a1d35;border-bottom:1px solid var(--border)}
+  .cal-date{display:flex;align-items:center;gap:.75rem}
+  .cal-date-num{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;min-width:24px}
+  .cal-date-day{font-size:12px;color:var(--muted)}
+  .cal-date-month{font-size:11px;color:var(--muted)}
+  .cal-count{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:.4rem}
+  .cal-count .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+  .cal-count .dot-quiz{background:var(--quiz)}
+  .cal-count .dot-exam{background:var(--exam)}
+  .calendar-day-body{padding:0 1rem .75rem;display:none}
+  .calendar-day-body.open{display:block}
+  .cal-slot{display:flex;align-items:center;gap:.75rem;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:12px}
+  .cal-slot:last-child{border-bottom:none}
+  .cal-slot-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);min-width:90px}
+  .cal-slot-subj{font-weight:500;flex:1}
+  .cal-slot-room{color:var(--muted);font-size:11px}
+
+  /* ── SEARCH ── */
+  .search-bar{position:relative;margin-bottom:1rem}
+  .search-bar input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:.7rem 1rem .7rem 2.5rem;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;outline:none}
+  .search-bar input:focus{border-color:var(--accent)}
+  .search-icon{position:absolute;left:.8rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+
+  @media(max-width:600px){.content{padding:1rem}.topbar{padding:.75rem 1rem}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-label">Loading timetable data…</div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="iim-logo">IIM Indore · PGP 2025–27</div>
+    <h1>Term 4 Schedule</h1>
+    <p>Enter your IIM email or roll number to see your personal timetable.</p>
+
+    <div id="recent-list-wrap" style="display:none;margin-bottom:1.25rem">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:.05em;margin-bottom:.5rem;text-transform:uppercase">Recently viewed</div>
+      <div id="recent-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
+    </div>
+
+    <div class="input-group">
+      <label>Email ID or Roll Number</label>
+      <input type="text" id="login-input" placeholder="p25prithvirajp@iimidr.ac.in or 2025PGP292" autocomplete="off"/>
+    </div>
+    <button class="btn-primary" onclick="handleLogin()">View my schedule →</button>
+    <div class="error-msg" id="error-msg">No student found. Try your full IIM email or roll number.</div>
+    <div class="student-hint" id="student-hint"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand">IIM Indore · T4</div>
+      <div class="user-pill" id="user-pill">—</div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">Sign out</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('today',this)">Today</div>
+    <div class="tab" onclick="switchTab('term',this)">Full term</div>
+  </div>
+
+  <div id="tab-today" class="content">
+    <div class="date-nav">
+      <button class="nav-btn" onclick="changeDay(-1)">← Prev</button>
+      <div class="date-display">
+        <div class="day-name" id="view-day-name">—</div>
+        <div class="date-full" id="view-date-full">—</div>
+      </div>
+      <button class="nav-btn" onclick="changeDay(1)">Next →</button>
+    </div>
+    <div class="stats-row" id="today-stats"></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Class</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--quiz)"></div>Quiz</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--exam)"></div>End-term / Mid-term</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--exam);border:1px solid #fff"></div>⚠ Clash with another of your classes</div>
+    </div>
+    <div class="slot-list" id="today-slots"></div>
+  </div>
+
+  <div id="tab-term" class="content" style="display:none">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="term-search" placeholder="Search subject, room…" oninput="renderTerm()">
+    </div>
+    <div id="term-calendar"></div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG — paste your Apps Script Web App URL here ──────────
+// After you deploy the Apps Script as a Web App (see instructions),
+// paste the deployment URL below:
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxXwQKWQglUCi0NJQ8cRZfVW1M9rx_WWxO4S3Rwi5l0PT1tnVHYA0I6xPIVwUW6-_g/exec";
+
+// Drive file IDs (kept as fallback reference)
+const TIMETABLE_FILE_ID = "12od3q9r5qIrWloKIBdVlHX96kUxxFusY";
+const STUDENTS_FILE_ID  = "1wLepe3pFl50R5rRxW2JhLAIDgmIqlS_L";
+
+// ─── SLOT DEFINITIONS ────────────────────────────────────────
+// "sB" = the lunch-break column, which occasionally holds a quiz/ET/MT
+// code instead of being a true break. Kept separate from s3/s4 so it
+// renders with its own time label.
+const SLOTS = [
+  {key:"s1",label:"Slot 1",time:"9:00 – 10:15 am"},
+  {key:"s2",label:"Slot 2",time:"10:30 – 11:45 am"},
+  {key:"s3",label:"Slot 3",time:"12:00 – 1:15 pm"},
+  {key:"sB",label:"Lunch Break",time:"1:15 – 2:30 pm"},
+  {key:"s4",label:"Slot 4",time:"2:30 – 3:45 pm"},
+  {key:"s5",label:"Slot 5",time:"4:00 – 5:15 pm"},
+  {key:"s6",label:"Slot 6",time:"5:30 – 6:45 pm"},
+  {key:"s7",label:"Slot 7",time:"7:00 – 8:15 pm"},
+  {key:"s8",label:"Slot 8",time:"8:45 – 10:00 pm"},
+  {key:"s9",label:"Slot 9",time:"10:15 – 11:30 pm"},
+];
+
+const COURSE_NAMES = {
+  "ACEL":"Advanced Corporate & Economic Laws","ADMA":"Advanced Decision Modeling & Analytics",
+  "AIMLB":"AI & Machine Learning for Business","B2B":"Business to Business Marketing",
+  "BF":"Behavioural Finance","BM":"Brand Management","Bmod":"Business Models",
+  "CABV":"Critical Aspects of Business Valuation","CB":"Consumer Behaviour",
+  "CCR":"Communicating Corporate Reputation","CEDA":"Corporate Entrepreneurship in the Disruptive Age",
+  "CHW":"Consciousness & Holistic Wellbeing","CNN":"Consumer Neuroscience & Neuromarketing",
+  "DIW":"Diversity & Inclusion in the Workplace","DM":"Digital Marketing",
+  "DV":"Data Visualization","ExO":"Extreme Outdoors","FAMA":"Financial Aspects of M&A",
+  "FMac":"Financial Macroeconomics","GAFW":"Gen AI & Future of Work",
+  "GAIB":"Generative AI in Business","GBM":"Gamification & Behavioural Design",
+  "HRAI":"Human Resource Analytics","IAPM":"Investment Analysis & Portfolio Management",
+  "IB":"Investment Banking","IBSCG":"International Business Strategies",
+  "IF":"International Finance","ITA":"Introduction to Technical Analysis",
+  "ITWTO":"International Trade & WTO","LMPO":"Logistics Management & Platform Operations",
+  "LSS":"Lean Six Sigma","M&A":"Mergers & Acquisitions",
+  "MACR":"Mergers, Acquisitions & Corporate Restructuring","MSN":"Managing Social Networks",
+  "NCIS":"Nonverbal Communication in Interpersonal Success",
+  "OCMC":"Organizational Change Management & Consulting",
+  "OFD":"Options, Futures & Other Derivatives","PM":"Project Management",
+  "PPA":"Public Policy Analysis","Pricing":"Pricing","Python":"Python Hands-on",
+  "RegA":"Regression Analysis","Retail":"Retail Management","SA":"Strategic Alliances",
+  "SABE":"Strategic Analysis of Business Events","SM":"Strategic Marketing",
+  "SS":"Strategy Simulation","TOC":"Theory of Constraints","TSB":"Technology Strategy for Business",
+};
+
+const DAYS   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ─── APP STATE ────────────────────────────────────────────────
+let TT       = null;   // timetable data from Drive
+let STUDENTS = null;   // student data from Drive
+let ROLL_IDX = {};     // roll number → email
+let currentUser = null;
+let viewDate = new Date('2026-06-19');
+
+// ─── LOAD DATA FROM APPS SCRIPT WEB APP ──────────────────────
+async function loadData() {
+  try {
+    if (WEBAPP_URL === "PASTE_WEBAPP_URL_HERE") {
+      showConfigError();
+      return;
+    }
+
+    const [ttRes, stuRes] = await Promise.all([
+      fetch(WEBAPP_URL + "?type=timetable"),
+      fetch(WEBAPP_URL + "?type=students"),
+    ]);
+
+    if (!ttRes.ok || !stuRes.ok) throw new Error("Failed to fetch data from Apps Script");
+
+    TT       = await ttRes.json();
+    STUDENTS = await stuRes.json();
+
+    // Build roll number index
+    ROLL_IDX = {};
+    for (const [email, s] of Object.entries(STUDENTS)) {
+      if (s.roll) ROLL_IDX[s.roll.toLowerCase()] = email;
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('student-hint').textContent =
+      `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+
+    // ── Check for remembered session ──
+    tryAutoLogin();
+
+  } catch(e) {
+    document.getElementById('loading').innerHTML =
+      `<div style="text-align:center;color:#ef4444;padding:2rem">
+        <div style="font-size:24px;margin-bottom:1rem">⚠️</div>
+        <div style="font-size:14px;margin-bottom:.5rem">Could not load timetable data</div>
+        <div style="font-size:12px;color:#7b82a8">${e.message}</div>
+        <div style="font-size:12px;color:#7b82a8;margin-top:.5rem">Make sure the Drive files are publicly shared and the IDs are correct in the HTML config.</div>
+        <button onclick="loadData()" style="margin-top:1rem;background:#4f6ef7;color:white;border:none;padding:.6rem 1.2rem;border-radius:8px;cursor:pointer;font-family:inherit">Retry</button>
+      </div>`;
+  }
+}
+
+function showConfigError() {
+  document.getElementById('loading').innerHTML =
+    `<div style="text-align:center;padding:2rem;max-width:480px">
+      <div style="font-size:24px;margin-bottom:1rem">⚙️</div>
+      <div style="font-size:15px;font-weight:600;margin-bottom:.75rem;color:#e8eaf6">Setup required</div>
+      <div style="font-size:13px;color:#7b82a8;line-height:1.7;text-align:left;background:#1a1d27;border:1px solid #2e3349;border-radius:10px;padding:1rem">
+        <strong style="color:#e8eaf6">Step 1:</strong> In Apps Script, run <code style="color:#4f6ef7">initializeSnapshot</code><br>
+        <strong style="color:#e8eaf6">Step 2:</strong> Copy the two file IDs from the execution log<br>
+        <strong style="color:#e8eaf6">Step 3:</strong> Paste them into this HTML file at the top of the script section:<br><br>
+        <code style="color:#4f6ef7;font-size:11px">const TIMETABLE_FILE_ID = "your-id-here";<br>const STUDENTS_FILE_ID  = "your-id-here";</code>
+      </div>
+    </div>`;
+}
+
+// ─── SESSION MEMORY (localStorage) ───────────────────────────
+const LS_LAST_USER   = "t4_last_user_email";
+const LS_RECENT_LIST  = "t4_recent_emails";
+const MAX_RECENT      = 5;
+
+function getRecentEmails() {
+  try {
+    const raw = localStorage.getItem(LS_RECENT_LIST);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
+}
+
+function saveRecentEmail(email) {
+  try {
+    let recent = getRecentEmails().filter(e => e !== email);
+    recent.unshift(email);
+    recent = recent.slice(0, MAX_RECENT);
+    localStorage.setItem(LS_RECENT_LIST, JSON.stringify(recent));
+    localStorage.setItem(LS_LAST_USER, email);
+  } catch(e) { /* localStorage unavailable — fail silently */ }
+}
+
+function getLastUser() {
+  try { return localStorage.getItem(LS_LAST_USER); } catch(e) { return null; }
+}
+
+function clearSessionMemory() {
+  try {
+    localStorage.removeItem(LS_LAST_USER);
+  } catch(e) {}
+}
+
+// Try to auto-load the last signed-in person; otherwise show login + recent list
+function tryAutoLogin() {
+  const lastEmail = getLastUser();
+
+  if (lastEmail && STUDENTS[lastEmail]) {
+    loginAs(lastEmail);
+    return;
+  }
+
+  // No remembered session — show login screen with recent list if any
+  document.getElementById('login-screen').style.display = 'flex';
+  renderRecentList();
+}
+
+function renderRecentList() {
+  const recent = getRecentEmails().filter(e => STUDENTS[e]);
+  const wrap = document.getElementById('recent-list-wrap');
+  const list = document.getElementById('recent-list');
+
+  if (recent.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  list.innerHTML = recent.map(email => {
+    const s = STUDENTS[email];
+    return `<div class="recent-chip" onclick="loginAs('${email}')">
+      <div>
+        <div class="recent-chip-name">${s.name}</div>
+        <div class="recent-chip-roll">${s.roll}</div>
+      </div>
+      <div class="recent-chip-arrow">→</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── AUTH ─────────────────────────────────────────────────────
+function handleLogin() {
+  if (!STUDENTS) return;
+  const raw = document.getElementById('login-input').value.trim().toLowerCase();
+  let email = null;
+
+  if (STUDENTS[raw]) {
+    email = raw;
+  } else if (ROLL_IDX[raw]) {
+    email = ROLL_IDX[raw];
+  } else {
+    for (const e of Object.keys(STUDENTS)) {
+      if (e.toLowerCase().includes(raw) || STUDENTS[e].name.toLowerCase().includes(raw)) {
+        email = e; break;
+      }
+    }
+  }
+
+  if (!email) {
+    document.getElementById('error-msg').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('error-msg').style.display = 'none';
+  loginAs(email);
+}
+
+// Central login function — used by manual login, recent-chip click, and auto-login
+function loginAs(email) {
+  if (!STUDENTS[email]) return;
+
+  currentUser = { email, ...STUDENTS[email] };
+  saveRecentEmail(email);
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-pill').innerHTML =
+    `<span>${currentUser.name}</span> · ${currentUser.roll}`;
+
+  viewDate = new Date('2026-06-19');
+  renderToday();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('login-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+});
+
+function handleLogout() {
+  currentUser = null;
+  clearSessionMemory();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-input').value = '';
+  renderRecentList();
+}
+
+// ─── COURSE MATCHING ─────────────────────────────────────────
+// Matches a timetable cell like "OFD B 2" against subscribed courses like ["OFD-B","IAPM-A"]
+function userHasSubject(cell) {
+  if (!cell || !currentUser) return false;
+  const c = cell.trim();
+
+  // Quiz / exam markers like "Q1-OFD", "ET-IAPM", "MT-RegA"
+  if (/^(Q\d+[-]|ET[-]|MT[-])/i.test(c)) {
+    const code = c.replace(/^(Q\d+[-]|ET[-]|MT[-])/i, '').split(/\s/)[0];
+    return currentUser.courses.some(sub => {
+      const base = sub.replace(/[-][AB]$/i, '');
+      return code.toLowerCase() === base.toLowerCase();
+    });
+  }
+
+  // Regular class — parse parts
+  // Examples: "OFD B 2", "FAMA A 1", "SM A&B 3", "CNN A 1", "Bmod A 1", "CABV 1", "RegA 3"
+  const parts = c.split(/\s+/);
+  const subjectCode = parts[0];  // e.g. "OFD", "FAMA", "SM", "CNN", "Bmod", "CABV"
+  const sectionChar = parts[1];  // e.g. "A", "B", "A&B", or a number if single-section
+
+  return currentUser.courses.some(sub => {
+    // sub examples: "OFD-B", "FAMA-B", "SM-A", "CNN-A", "Bmod-A", "CABV", "RegA"
+    const subBase    = sub.replace(/[-][AB]$/i, '').toLowerCase();  // "ofd", "fama", "sm", etc.
+    const subSection = (sub.match(/[-]([AB])$/i) || [])[1] || null; // "B", "A", or null
+
+    if (subjectCode.toLowerCase() !== subBase) return false;
+
+    // If course has no section (single-section like CABV, RegA), match anything
+    if (!subSection) return true;
+
+    // If cell has A&B it means both sections attend
+    if (sectionChar === 'A&B') return true;
+
+    // Match section letter
+    if (!sectionChar || /^\d+$/.test(sectionChar)) return true; // no section in cell
+    return sectionChar.toUpperCase() === subSection.toUpperCase();
+  });
+}
+
+function getCourseName(cell) {
+  if (!cell) return '';
+  const base = cell.split(/\s/)[0].replace(/[AB]$/i, '');
+  return COURSE_NAMES[base] || COURSE_NAMES[cell.split(/\s/)[0]] || '';
+}
+
+function isQuiz(cell) { return cell && /^Q\d+[-]/i.test(cell); }
+function isExam(cell) { return cell && /^(ET[-]|MT[-])/i.test(cell); }
+
+// ─── GET USER SESSIONS FOR A DATE (with clash detection) ─────
+function getUserSessions(dateStr) {
+  if (!TT) return [];
+  const day = TT[dateStr] || {};
+  const results = [];
+  const seen = new Set();
+
+  for (const slot of SLOTS) {
+    for (const [room, slots] of Object.entries(day)) {
+      const cell = slots[slot.key];
+      if (!cell) continue;
+      if (!userHasSubject(cell)) continue;
+      const key = slot.key + '|' + cell;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ slot, room, cell, dateStr });
+    }
+  }
+
+  // Mark clashes: two+ of the user's own sessions sharing the same slot key
+  const slotCounts = {};
+  for (const r of results) {
+    slotCounts[r.slot.key] = (slotCounts[r.slot.key] || 0) + 1;
+  }
+  for (const r of results) {
+    r.isClash = slotCounts[r.slot.key] > 1;
+  }
+
+  return results;
+}
+
+// ─── TODAY VIEW ───────────────────────────────────────────────
+function changeDay(n) {
+  viewDate = new Date(viewDate);
+  viewDate.setDate(viewDate.getDate() + n);
+  renderToday();
+}
+
+function renderToday() {
+  const key      = dateKey(viewDate);
+  const isToday  = dateKey(new Date()) === key;
+  const sessions = getUserSessions(key);
+
+  document.getElementById('view-day-name').textContent = DAYS[viewDate.getDay()];
+  document.getElementById('view-date-full').innerHTML  =
+    viewDate.getDate() + ' ' + MONTHS[viewDate.getMonth()] + ' ' + viewDate.getFullYear() +
+    (isToday ? '<span class="today-badge">today</span>' : '');
+
+  const quizzes = sessions.filter(s => isQuiz(s.cell));
+  const exams   = sessions.filter(s => isExam(s.cell));
+  const classes = sessions.filter(s => !isQuiz(s.cell) && !isExam(s.cell));
+
+  document.getElementById('today-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${classes.length}</div><div class="stat-lbl">classes</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--quiz)">${quizzes.length}</div><div class="stat-lbl">quiz${quizzes.length!==1?'zes':''}</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--exam)">${exams.length}</div><div class="stat-lbl">exam${exams.length!==1?'s':''}</div></div>
+  `;
+
+  const nowSlot  = getCurrentSlot();
+  const container = document.getElementById('today-slots');
+
+  if (sessions.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
+    return;
+  }
+
+  container.innerHTML = sessions.map(s => {
+    const quiz = isQuiz(s.cell), exam = isExam(s.cell);
+    const isCurrent = isToday && s.slot.key === nowSlot;
+    const fullName = getCourseName(s.cell);
+    let cls = 'slot-card';
+    if (quiz) cls += ' is-quiz';
+    else if (exam) cls += ' is-exam';
+    if (isCurrent) cls += ' is-now';
+    if (s.isClash) cls += ' is-clash';
+
+    return `<div class="${cls}">
+      <div class="slot-time">${s.slot.time.replace('–','–<br>')}</div>
+      <div class="slot-main">
+        <div class="slot-subject">${s.cell}</div>
+        ${fullName ? `<div class="slot-subject-full">${fullName}</div>` : ''}
+        <div class="slot-meta">
+          <span class="badge badge-room">📍 ${s.room}</span>
+          <span class="badge badge-slot">${s.slot.label}</span>
+          ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
+          ${exam ? '<span class="badge badge-exam">End-term</span>' : ''}
+          ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
+          ${s.isClash ? '<span class="badge badge-clash">⚠ Clash</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getCurrentSlot() {
+  const m = new Date().getHours()*60 + new Date().getMinutes();
+  if (m>=540&&m<615) return 's1'; if (m>=630&&m<705) return 's2';
+  if (m>=720&&m<795) return 's3'; if (m>=795&&m<870) return 'sB';
+  if (m>=870&&m<945) return 's4';
+  if (m>=960&&m<1035) return 's5'; if (m>=1050&&m<1125) return 's6';
+  if (m>=1140&&m<1215) return 's7'; if (m>=1245&&m<1320) return 's8';
+  if (m>=1335&&m<1410) return 's9'; return null;
+}
+
+// ─── TERM VIEW ────────────────────────────────────────────────
+function renderTerm() {
+  const q   = (document.getElementById('term-search').value||'').toLowerCase();
+  const all = Object.keys(TT||{}).sort();
+  const todayKey_ = dateKey(new Date());
+  const months = {};
+  for (const d of all) { const mo=d.substring(0,7); if(!months[mo])months[mo]=[]; months[mo].push(d); }
+
+  let html = '';
+  for (const [mo, dates] of Object.entries(months)) {
+    const moLabel = new Date(mo+'-01').toLocaleString('default',{month:'long',year:'numeric'});
+    html += `<div class="month-group"><div class="month-header">${moLabel}</div>`;
+
+    for (const d of dates) {
+      const sessions = getUserSessions(d);
+      const filtered = q ? sessions.filter(s =>
+        s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q) || getCourseName(s.cell).toLowerCase().includes(q)
+      ) : sessions;
+      if (filtered.length===0 && q) continue;
+
+      const dt = new Date(d+'T00:00:00');
+      const isToday = d===todayKey_;
+      const qz = sessions.filter(s=>isQuiz(s.cell)).length;
+      const ex = sessions.filter(s=>isExam(s.cell)).length;
+      const cl = sessions.filter(s=>!isQuiz(s.cell)&&!isExam(s.cell)).length;
+
+      html += `<div class="calendar-day">
+        <div class="calendar-day-header ${isToday?'today-header':''}" onclick="toggleDay('${d}')">
+          <div class="cal-date">
+            <div class="cal-date-num">${dt.getDate()}</div>
+            <div>
+              <div class="cal-date-day">${DAYS[dt.getDay()].substring(0,3)}${isToday?'<span class="today-badge">today</span>':''}</div>
+              <div class="cal-date-month">${MONTHS[dt.getMonth()]}</div>
+            </div>
+          </div>
+          <div class="cal-count">
+            ${cl>0?`<span class="dot"></span>${cl} class${cl!==1?'es':''}`:''} 
+            ${qz>0?`<span class="dot dot-quiz"></span>${qz} quiz`:''}
+            ${ex>0?`<span class="dot dot-exam"></span>${ex} exam`:''}
+            ${sessions.length===0?'<span style="color:var(--border)">—</span>':''}
+          </div>
+        </div>
+        <div class="calendar-day-body ${isToday?'open':''}" id="day-${d}">`;
+
+      if (filtered.length===0) {
+        html += `<div style="font-size:12px;color:var(--muted);padding:.5rem 0">No classes</div>`;
+      } else {
+        for (const s of filtered) {
+          const quiz=isQuiz(s.cell), exam=isExam(s.cell);
+          html += `<div class="cal-slot" style="${s.isClash ? 'background:#2a1418;border-radius:6px;padding-left:6px' : ''}">
+            <div class="cal-slot-time">${s.slot.time}</div>
+            <div class="cal-slot-subj" style="color:${quiz?'var(--quiz)':exam?'var(--exam)':'var(--text)'}">${s.cell}${s.isClash ? ' <span style="color:var(--exam);font-size:10px;font-weight:700">⚠ CLASH</span>' : ''}</div>
+            <div class="cal-slot-room">${s.room}</div>
+          </div>`;
+        }
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
+  }
+
+  document.getElementById('term-calendar').innerHTML = html || `<div class="empty-state"><div class="empty-icon">🔍</div><p>No results</p></div>`;
+}
+
+function toggleDay(d) { document.getElementById('day-'+d).classList.toggle('open'); }
+
+// ─── TABS ─────────────────────────────────────────────────────
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-today').style.display = tab==='today'?'block':'none';
+  document.getElementById('tab-term').style.display  = tab==='term'?'block':'none';
+  if (tab==='term') renderTerm();
+}
+
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ─── INIT ─────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>

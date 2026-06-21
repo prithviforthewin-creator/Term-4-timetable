@@ -1240,7 +1240,7 @@ function renderFinder() {
       html += `<div class="finder-slot-card none-free">
         <div class="finder-slot-header">
           <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
-          <span class="finder-slot-badge none">${busyPeople.length}/${allEmails.length} busy</span>
+          <span class="finder-slot-badge none">${freeCount}/${allEmails.length} free</span>
         </div>
         <div class="finder-busy-list">Busy: ${busyNames.map(n => `<span class="busy-name">${n}</span>`).join(', ')}</div>
       </div>`;

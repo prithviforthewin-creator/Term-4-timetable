@@ -386,11 +386,13 @@
   }
   .finder-slot-card.all-free{border-left-color:var(--free)}
   .finder-slot-card.partial-free{border-left-color:var(--quiz)}
+  .finder-slot-card.none-free{border-left-color:var(--exam)}
   .finder-slot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem}
   .finder-slot-time{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);font-weight:600}
   .finder-slot-badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:700;letter-spacing:.02em}
   .finder-slot-badge.all{background:var(--free-wash);color:var(--free);border:1px solid var(--free)}
   .finder-slot-badge.partial{background:var(--quiz-wash);color:var(--quiz);border:1px solid var(--quiz)}
+  .finder-slot-badge.none{background:var(--exam-wash);color:var(--exam);border:1px solid var(--exam)}
   .finder-busy-list{font-size:12px;color:var(--ink-muted)}
   .finder-busy-list .busy-name{color:var(--exam);font-weight:500}
   .finder-empty-hint{
@@ -1208,29 +1210,24 @@ function renderFinder() {
   }
 
   const allEmails = finderSelectedEmails;
-  const allNames  = allEmails.map(e => STUDENTS[e] ? STUDENTS[e].name : e);
 
-  let anyFullyFree = false;
-  let anyPartial   = false;
   let html = '';
 
   for (const slot of SLOTS) {
     const busyPeople = allEmails.filter(email => isPersonBusyInSlot(email, dateStr, slot.key));
     const freeCount  = allEmails.length - busyPeople.length;
+    const busyNames  = busyPeople.map(e => STUDENTS[e] ? STUDENTS[e].name : e);
 
     if (freeCount === allEmails.length) {
       // Everyone free
-      anyFullyFree = true;
       html += `<div class="finder-slot-card all-free">
         <div class="finder-slot-header">
           <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
           <span class="finder-slot-badge all">✓ Everyone free</span>
         </div>
       </div>`;
-    } else if (freeCount > 0 && freeCount < allEmails.length) {
+    } else if (freeCount > 0) {
       // Mostly free — show who's busy
-      anyPartial = true;
-      const busyNames = busyPeople.map(e => STUDENTS[e] ? STUDENTS[e].name : e);
       html += `<div class="finder-slot-card partial-free">
         <div class="finder-slot-header">
           <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
@@ -1238,13 +1235,16 @@ function renderFinder() {
         </div>
         <div class="finder-busy-list">Busy: ${busyNames.map(n => `<span class="busy-name">${n}</span>`).join(', ')}</div>
       </div>`;
+    } else {
+      // Everyone busy — show it, don't skip it
+      html += `<div class="finder-slot-card none-free">
+        <div class="finder-slot-header">
+          <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
+          <span class="finder-slot-badge none">${busyPeople.length}/${allEmails.length} busy</span>
+        </div>
+        <div class="finder-busy-list">Busy: ${busyNames.map(n => `<span class="busy-name">${n}</span>`).join(', ')}</div>
+      </div>`;
     }
-    // If freeCount === 0, everyone busy — skip entirely, not useful to show
-  }
-
-  if (!anyFullyFree && !anyPartial) {
-    results.innerHTML = `<div class="finder-empty-hint">No common free slots on this day for ${allNames.join(', ')} — everyone's fully booked across all slots.</div>`;
-    return;
   }
 
   results.innerHTML = html;

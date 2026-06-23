@@ -252,6 +252,7 @@
   .slot-card.is-exam{border-left-color:var(--exam)}
   .slot-card.is-now{border-left-color:var(--accent);background:var(--accent-wash)}
   .slot-card.is-clash{border-left-color:var(--exam);background:var(--exam-wash)}
+  .sister-alt{margin-top:8px;padding:8px 10px;background:var(--free-wash);color:var(--free);border:1px solid var(--free);border-radius:8px;font-size:12px;line-height:1.45}
 
   .slot-time{
     font-family:var(--font-mono);font-size:11px;color:var(--ink-muted);min-width:78px;
@@ -957,7 +958,44 @@ function getUserSessions(dateStr) {
     r.isClash = slotCounts[r.slot.key] > 1;
   }
 
+  // For each clash, check whether a sister section (same base subject,
+  // different section letter) runs at a different, clash-free slot the
+  // same day — if so, surface it as a possible way to not miss the class.
+  const myAllSlotKeys = new Set(results.map(r => r.slot.key));
+  for (const r of results) {
+    if (r.isClash) r.sisterAlt = findSisterSectionAlt(r.cell, dateStr, myAllSlotKeys);
+  }
+
   return results;
+}
+
+// Same base subject code, a *different* section letter, scheduled at a slot
+// the student doesn't already have something in. Doesn't know whether
+// attending a sister section is actually permitted for that specific course
+// — that's a per-course policy (see the course outline's own "attendance in
+// sister section" field) — so this is a suggestion to verify, not a promise.
+function findSisterSectionAlt(cell, dateStr, mySlotKeysToAvoid) {
+  const day = TT[dateStr];
+  if (!day) return null;
+
+  const parts   = cell.trim().split(/\s+/);
+  const base    = parts[0].toUpperCase();
+  const mySect  = (parts[1] && /^[A-Z]$/i.test(parts[1])) ? parts[1].toUpperCase() : null;
+  if (!mySect) return null; // no section letter on this cell — nothing to call a "sister" of
+
+  for (const slot of SLOTS) {
+    if (mySlotKeysToAvoid.has(slot.key)) continue;
+    for (const [room, slots] of Object.entries(day)) {
+      const candidate = slots[slot.key];
+      if (!candidate) continue;
+      const cParts = candidate.trim().split(/\s+/);
+      if (cParts[0].toUpperCase() !== base) continue;
+      const cSect = (cParts[1] && /^[A-Z]$/i.test(cParts[1])) ? cParts[1].toUpperCase() : null;
+      if (!cSect || cSect === mySect) continue; // not a genuinely different section
+      return { slot, room, cell: candidate };
+    }
+  }
+  return null;
 }
 
 // ─── TODAY VIEW ───────────────────────────────────────────────
@@ -1018,6 +1056,7 @@ function renderToday() {
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
           ${s.isClash ? '<span class="badge badge-clash">⚠ Clash</span>' : ''}
         </div>
+        ${s.sisterAlt ? `<div class="sister-alt">💡 ${s.sisterAlt.cell} runs ${s.sisterAlt.slot.time} (${s.sisterAlt.room}) instead, with nothing else of yours then. Worth checking your professor allows sister-section attendance for this course before relying on it.</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1089,6 +1128,9 @@ function renderTerm() {
             <div class="cal-slot-subj" style="color:${quiz?'var(--quiz)':exam?'var(--exam)':'var(--ink)'}">${s.cell}${s.isClash ? ' <span style="color:var(--exam);font-size:10px;font-weight:700">⚠ CLASH</span>' : ''}</div>
             <div class="cal-slot-room">${s.room}</div>
           </div>`;
+          if (s.sisterAlt) {
+            html += `<div style="font-size:11px;color:var(--free);padding:2px 0 6px 6px">💡 ${s.sisterAlt.cell} runs ${s.sisterAlt.slot.time} instead, clash-free — check sister-section attendance is allowed first</div>`;
+          }
         }
       }
       html += `</div></div>`;

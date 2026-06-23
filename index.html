@@ -1056,7 +1056,7 @@ function renderToday() {
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
           ${s.isClash ? '<span class="badge badge-clash">⚠ Clash</span>' : ''}
         </div>
-        ${s.sisterAlt ? `<div class="sister-alt">💡 ${s.sisterAlt.cell} runs ${s.sisterAlt.slot.time} (${s.sisterAlt.room}) instead, with nothing else of yours then. Worth checking your professor allows sister-section attendance for this course before relying on it.</div>` : ''}
+        ${s.sisterAlt ? `<div class="sister-alt">💡 ${s.sisterAlt.cell} available ${s.sisterAlt.slot.time} · ${s.sisterAlt.room}</div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1129,7 +1129,7 @@ function renderTerm() {
             <div class="cal-slot-room">${s.room}</div>
           </div>`;
           if (s.sisterAlt) {
-            html += `<div style="font-size:11px;color:var(--free);padding:2px 0 6px 6px">💡 ${s.sisterAlt.cell} runs ${s.sisterAlt.slot.time} instead, clash-free — check sister-section attendance is allowed first</div>`;
+            html += `<div style="font-size:11px;color:var(--free);padding:2px 0 6px 6px">💡 ${s.sisterAlt.cell} available ${s.sisterAlt.slot.time} · ${s.sisterAlt.room}</div>`;
           }
         }
       }

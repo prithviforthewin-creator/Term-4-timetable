@@ -1,0 +1,14 @@
+{
+  "name": "IIM Indore · Term 4 Timetable",
+  "short_name": "T4 Timetable",
+  "description": "Personalized Term-4 schedule, course outlines, and timetable alerts for IIM Indore PGP 2025-27.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f6f3ec",
+  "theme_color": "#2f6e4f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

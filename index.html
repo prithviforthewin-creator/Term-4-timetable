@@ -4,9 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IIM Indore · Term 4 Schedule</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2f6e4f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="T4 Timetable">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
-
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
   /* ════════════════════════════════════════════════════════════
@@ -330,6 +338,9 @@
   }
   .search-bar input::placeholder{color:var(--ink-faint)}
   .search-bar input:focus{border-color:var(--accent)}
+  .term-filter-btn{display:inline-flex;align-items:center;gap:7px;margin-bottom:1.1rem;padding:.5rem .9rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--ink-muted);font-family:var(--font-body);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
+  .term-filter-btn:hover{border-color:var(--quiz)}
+  .term-filter-btn.active{background:var(--quiz-wash);color:var(--quiz);border-color:var(--quiz);font-weight:600}
   .search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:14px}
 
   /* ════════════════════════════════════════════════════════════
@@ -486,6 +497,9 @@
       <span class="search-icon">🔍</span>
       <input type="text" id="term-search" placeholder="Search subject, room…" oninput="renderTerm()">
     </div>
+    <button class="term-filter-btn" id="term-filter-btn" onclick="toggleTermExamFilter()">
+      <span class="dot dot-quiz"></span><span class="dot dot-exam"></span>Quiz &amp; exam days only
+    </button>
     <div id="term-calendar"></div>
   </div>
 
@@ -594,13 +608,52 @@ function getTermTodayDate() {
 let viewDate = getTermTodayDate();
 
 // ─── LOAD DATA FROM APPS SCRIPT WEB APP ──────────────────────
-async function loadData() {
-  try {
-    if (WEBAPP_URL === "PASTE_WEBAPP_URL_HERE") {
-      showConfigError();
-      return;
-    }
+// Stale-while-revalidate: render instantly from local cache if we have
+// one, then quietly re-fetch in the background and only touch the UI
+// again if something actually changed. First-ever visit on a device has
+// no cache yet, so it falls back to the old wait-for-fetch behavior.
+const CACHE_KEY_TT  = 'iimT4_cache_timetable';
+const CACHE_KEY_STU = 'iimT4_cache_students';
 
+function setData(tt, stu) {
+  TT       = tt;
+  STUDENTS = stu;
+  ROLL_IDX = {};
+  for (const [email, s] of Object.entries(STUDENTS)) {
+    if (s.roll) ROLL_IDX[s.roll.toLowerCase()] = email;
+  }
+}
+
+function rerenderCurrentView() {
+  const today  = document.getElementById('tab-today');
+  const term   = document.getElementById('tab-term');
+  const finder = document.getElementById('tab-finder');
+  if (today  && today.style.display  !== 'none') renderToday();
+  if (term   && term.style.display   !== 'none') renderTerm();
+  if (finder && finder.style.display !== 'none') renderFinder();
+}
+
+async function loadData() {
+  if (WEBAPP_URL === "PASTE_WEBAPP_URL_HERE") {
+    showConfigError();
+    return;
+  }
+
+  let renderedFromCache = false;
+  try {
+    const cachedTT  = localStorage.getItem(CACHE_KEY_TT);
+    const cachedStu = localStorage.getItem(CACHE_KEY_STU);
+    if (cachedTT && cachedStu) {
+      setData(JSON.parse(cachedTT), JSON.parse(cachedStu));
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('student-hint').textContent =
+        `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+      tryAutoLogin();
+      renderedFromCache = true;
+    }
+  } catch(e) { /* corrupted cache — ignore, fall through to a real fetch */ }
+
+  try {
     const [ttRes, stuRes] = await Promise.all([
       fetch(WEBAPP_URL + "?type=timetable"),
       fetch(WEBAPP_URL + "?type=students"),
@@ -608,23 +661,35 @@ async function loadData() {
 
     if (!ttRes.ok || !stuRes.ok) throw new Error("Failed to fetch data from Apps Script");
 
-    TT       = await ttRes.json();
-    STUDENTS = await stuRes.json();
+    const freshTT  = await ttRes.json();
+    const freshStu = await stuRes.json();
+    const ttJson   = JSON.stringify(freshTT);
+    const stuJson  = JSON.stringify(freshStu);
+    const changed  = ttJson !== localStorage.getItem(CACHE_KEY_TT) || stuJson !== localStorage.getItem(CACHE_KEY_STU);
 
-    // Build roll number index
-    ROLL_IDX = {};
-    for (const [email, s] of Object.entries(STUDENTS)) {
-      if (s.roll) ROLL_IDX[s.roll.toLowerCase()] = email;
+    try {
+      localStorage.setItem(CACHE_KEY_TT, ttJson);
+      localStorage.setItem(CACHE_KEY_STU, stuJson);
+    } catch(e) { /* storage full/unavailable — not fatal, just skip caching */ }
+
+    setData(freshTT, freshStu);
+
+    if (!renderedFromCache) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('student-hint').textContent =
+        `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+      tryAutoLogin();
+    } else if (changed) {
+      document.getElementById('student-hint').textContent =
+        `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+      rerenderCurrentView();
     }
 
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('student-hint').textContent =
-      `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
-
-    // ── Check for remembered session ──
-    tryAutoLogin();
-
   } catch(e) {
+    if (renderedFromCache) {
+      console.warn('Background refresh failed, keeping cached data on screen:', e.message);
+      return;
+    }
     document.getElementById('loading').innerHTML =
       `<div style="text-align:center;color:var(--exam);padding:2rem">
         <div style="font-size:24px;margin-bottom:1rem">⚠️</div>
@@ -825,7 +890,7 @@ function userHasSubject(cell) {
   if (/^(Q\d+[-]|ET[-]|MT[-])/i.test(c)) {
     const code = c.replace(/^(Q\d+[-]|ET[-]|MT[-])/i, '').split(/\s/)[0];
     return currentUser.courses.some(sub => {
-      const base = sub.replace(/[-][AB]$/i, '');
+      const base = sub.replace(/[-]([A-Z])$/i, '');
       return code.toLowerCase() === base.toLowerCase();
     });
   }
@@ -837,9 +902,9 @@ function userHasSubject(cell) {
   const sectionChar = parts[1];  // e.g. "A", "B", "A&B", or a number if single-section
 
   return currentUser.courses.some(sub => {
-    // sub examples: "OFD-B", "FAMA-B", "SM-A", "CNN-A", "Bmod-A", "CABV", "RegA"
-    const subBase    = sub.replace(/[-][AB]$/i, '').toLowerCase();  // "ofd", "fama", "sm", etc.
-    const subSection = (sub.match(/[-]([AB])$/i) || [])[1] || null; // "B", "A", or null
+    // sub examples: "OFD-B", "FAMA-B", "SM-A", "SS-D", "CNN-A", "Bmod-A", "CABV", "RegA"
+    const subBase    = sub.replace(/[-]([A-Z])$/i, '').toLowerCase();  // "ofd", "fama", "sm", etc.
+    const subSection = (sub.match(/[-]([A-Z])$/i) || [])[1] || null;   // "B", "D", or null
 
     if (subjectCode.toLowerCase() !== subBase) return false;
 
@@ -857,7 +922,7 @@ function userHasSubject(cell) {
 
 function getCourseName(cell) {
   if (!cell) return '';
-  const base = cell.split(/\s/)[0].replace(/[AB]$/i, '');
+  const base = cell.split(/\s/)[0].replace(/[A-Z]$/i, '');
   return COURSE_NAMES[base] || COURSE_NAMES[cell.split(/\s/)[0]] || '';
 }
 
@@ -983,10 +1048,12 @@ function renderTerm() {
 
     for (const d of dates) {
       const sessions = getUserSessions(d);
-      const filtered = q ? sessions.filter(s =>
-        s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q) || getCourseName(s.cell).toLowerCase().includes(q)
-      ) : sessions;
-      if (filtered.length===0 && q) continue;
+      const filtered = sessions.filter(s => {
+        if (termExamFilterOn && !(isQuiz(s.cell) || isExam(s.cell))) return false;
+        if (q && !(s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q) || getCourseName(s.cell).toLowerCase().includes(q))) return false;
+        return true;
+      });
+      if (filtered.length===0 && (q || termExamFilterOn)) continue;
 
       const dt = new Date(d+'T00:00:00');
       const isToday = d===todayKey_;
@@ -1033,6 +1100,14 @@ function renderTerm() {
 }
 
 function toggleDay(d) { document.getElementById('day-'+d).classList.toggle('open'); }
+
+let termExamFilterOn = false;
+
+function toggleTermExamFilter() {
+  termExamFilterOn = !termExamFilterOn;
+  document.getElementById('term-filter-btn').classList.toggle('active', termExamFilterOn);
+  renderTerm();
+}
 
 // ─── TABS ─────────────────────────────────────────────────────
 function switchTab(tab, el) {
@@ -1178,7 +1253,7 @@ function personHasSubject(email, cell) {
   if (/^(Q\d+[-]|ET[-]|MT[-])/i.test(c)) {
     const code = c.replace(/^(Q\d+[-]|ET[-]|MT[-])/i, '').split(/\s/)[0];
     return student.courses.some(sub => {
-      const base = sub.replace(/[-][AB]$/i, '');
+      const base = sub.replace(/[-]([A-Z])$/i, '');
       return code.toLowerCase() === base.toLowerCase();
     });
   }
@@ -1188,8 +1263,8 @@ function personHasSubject(email, cell) {
   const sectionChar = parts[1];
 
   return student.courses.some(sub => {
-    const subBase    = sub.replace(/[-][AB]$/i, '').toLowerCase();
-    const subSection = (sub.match(/[-]([AB])$/i) || [])[1] || null;
+    const subBase    = sub.replace(/[-]([A-Z])$/i, '').toLowerCase();
+    const subSection = (sub.match(/[-]([A-Z])$/i) || [])[1] || null;
 
     if (subjectCode.toLowerCase() !== subBase) return false;
     if (!subSection) return true;

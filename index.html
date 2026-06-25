@@ -40,8 +40,10 @@
     --accent-on:#0d0f14;
 
     --quiz:#c4822d;
+    --quiz-on:#1a1408;
     --quiz-wash:#2e2210;
     --exam:#c1543f;
+    --exam-on:#fff8f6;
     --exam-wash:#2c1714;
     --free:#4f8a6f;
     --free-wash:#16291f;
@@ -76,8 +78,10 @@
     --accent-on:#ffffff;
 
     --quiz:#a4621c;
+    --quiz-on:#1a1408;
     --quiz-wash:#f3e3cb;
     --exam:#a23f2c;
+    --exam-on:#fff8f6;
     --exam-wash:#f4ded8;
     --free:#2f6e4f;
     --free-wash:#e1ecdf;
@@ -263,6 +267,18 @@
   .clash-form-link{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--accent);text-decoration:underline;font-weight:500;cursor:pointer}
   .clash-form-link:hover{color:var(--accent-strong)}
 
+  .attend-row{display:flex;gap:.5rem;margin-top:9px}
+  .attend-btn{
+    flex:1;padding:.45rem .6rem;border-radius:7px;border:1px solid var(--border);background:var(--surface-2);
+    color:var(--ink-muted);font-family:var(--font-body);font-size:11.5px;font-weight:600;cursor:pointer;
+    transition:.15s;letter-spacing:.01em;
+  }
+  .attend-btn:disabled{opacity:.4;cursor:not-allowed}
+  .attend-present:hover:not(:disabled){border-color:var(--free);color:var(--free)}
+  .attend-absent:hover:not(:disabled){border-color:var(--exam);color:var(--exam)}
+  .attend-present.active{background:var(--free-wash);color:var(--free);border-color:var(--free)}
+  .attend-absent.active{background:var(--exam-wash);color:var(--exam);border-color:var(--exam)}
+
   .slot-time{
     font-family:var(--font-mono);font-size:11px;color:var(--ink-muted);min-width:78px;
     padding-top:2px;line-height:1.6;font-weight:500;
@@ -360,6 +376,13 @@
   .term-subject-select:focus{border-color:var(--accent)}
   [data-theme="dark"] .term-subject-select{color-scheme:dark}
   [data-theme="light"] .term-subject-select{color-scheme:light}
+  .jump-to-date-row{margin-bottom:.85rem}
+  .jump-to-date-row input[type="date"]{
+    width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:.65rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:13.5px;outline:none;
+    cursor:pointer;transition:border-color .15s;
+  }
+  .jump-to-date-row input[type="date"]:focus{border-color:var(--accent)}
   .search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:14px}
 
   /* ════════════════════════════════════════════════════════════
@@ -437,6 +460,66 @@
     font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink);
     margin:1rem 0 .85rem;padding-left:.1rem;
   }
+
+  /* ════════════════════════════════════════════════════════════
+     ATTENDANCE REMINDER BANNER
+  ════════════════════════════════════════════════════════════ */
+  .attendance-banner{
+    display:flex;align-items:center;gap:.7rem;background:var(--quiz-wash);border:1px solid var(--quiz);
+    border-radius:var(--radius);padding:.75rem 1rem;margin:0 1.5rem 1rem;font-size:12.5px;color:var(--ink);
+  }
+  .attendance-banner-icon{font-size:15px;flex-shrink:0}
+  .attendance-banner-text{flex:1;line-height:1.4}
+  .attendance-banner-cta{
+    background:var(--quiz);color:var(--quiz-on);border:none;border-radius:7px;padding:.45rem .85rem;
+    font-family:var(--font-body);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  }
+  .attendance-banner-close{
+    background:transparent;border:none;color:var(--ink-muted);cursor:pointer;font-size:13px;
+    padding:.2rem .4rem;flex-shrink:0;
+  }
+  .attendance-banner-close:hover{color:var(--ink)}
+  @media(max-width:600px){
+    .attendance-banner{margin:0 1rem 1rem;flex-wrap:wrap}
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     TOAST
+  ════════════════════════════════════════════════════════════ */
+  .toast{
+    position:fixed;bottom:1.5rem;left:50%;transform:translate(-50%,12px);
+    background:var(--ink);color:var(--bg);padding:.7rem 1.1rem;border-radius:8px;font-size:12.5px;
+    font-family:var(--font-body);font-weight:500;box-shadow:var(--shadow-pop);z-index:300;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:90vw;text-align:center;
+  }
+  [data-theme="light"] .toast{background:var(--ink);color:var(--bg)}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .toast.toast-error{background:var(--exam);color:var(--exam-on)}
+
+  /* ════════════════════════════════════════════════════════════
+     ATTENDANCE TRACKER
+  ════════════════════════════════════════════════════════════ */
+  .attendance-tracker-intro{font-size:12.5px;color:var(--ink-muted);margin-bottom:1.1rem;line-height:1.5}
+  .attendance-card{
+    background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border-strong);
+    border-radius:var(--radius);padding:1rem 1.15rem;margin-bottom:.75rem;
+  }
+  .attendance-card.buffer-ok{border-left-color:var(--free)}
+  .attendance-card.buffer-low{border-left-color:var(--quiz)}
+  .attendance-card.buffer-out{border-left-color:var(--exam);background:var(--exam-wash)}
+  .attendance-card-top{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;margin-bottom:.6rem}
+  .attendance-card-name{font-family:var(--font-display);font-size:15.5px;font-weight:600;color:var(--ink)}
+  .attendance-card-fullname{font-size:11px;color:var(--ink-muted);margin-top:1px}
+  .attendance-buffer-pill{
+    font-family:var(--font-mono);font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .buffer-ok .attendance-buffer-pill{background:var(--free-wash);color:var(--free);border:1px solid var(--free)}
+  .buffer-low .attendance-buffer-pill{background:var(--quiz-wash);color:var(--quiz);border:1px solid var(--quiz)}
+  .buffer-out .attendance-buffer-pill{background:var(--exam-wash);color:var(--exam);border:1px solid var(--exam)}
+  .attendance-card-stats{display:flex;gap:1.2rem;font-size:12px;color:var(--ink-muted)}
+  .attendance-card-stats b{color:var(--ink);font-weight:700}
+  .attendance-card-unmarked{margin-top:.5rem;font-size:11.5px;color:var(--quiz);font-weight:500}
 
   @media(max-width:600px){
     .content{padding:1.25rem 1rem}
@@ -535,10 +618,18 @@
     </div>
   </div>
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('today',this)">Today</div>
-    <div class="tab" onclick="switchTab('term',this)">Full term</div>
-    <div class="tab" onclick="switchTab('finder',this)">Scheduler</div>
-    <div class="tab" onclick="switchTab('friend',this)">Friends</div>
+    <div class="tab active" id="tabbtn-today" onclick="switchTab('today',this)">Today</div>
+    <div class="tab" id="tabbtn-term" onclick="switchTab('term',this)">Full term</div>
+    <div class="tab" id="tabbtn-finder" onclick="switchTab('finder',this)">Scheduler</div>
+    <div class="tab" id="tabbtn-friend" onclick="switchTab('friend',this)">Friends</div>
+    <div class="tab" id="tabbtn-attendance" onclick="switchTab('attendance',this)">Attendance</div>
+  </div>
+
+  <div id="attendance-banner" class="attendance-banner" style="display:none">
+    <span class="attendance-banner-icon">📋</span>
+    <span class="attendance-banner-text" id="attendance-banner-text"></span>
+    <button class="attendance-banner-cta" onclick="goToEarliestUnmarked()">Mark them →</button>
+    <button class="attendance-banner-close" onclick="dismissAttendanceBanner()">✕</button>
   </div>
 
   <div id="tab-today" class="content">
@@ -561,6 +652,10 @@
   </div>
 
   <div id="tab-term" class="content" style="display:none">
+    <div class="jump-to-date-row">
+      <label class="finder-label" for="term-jump-date">Jump to date</label>
+      <input type="date" id="term-jump-date" min="2026-06-15" max="2026-09-08" onchange="jumpTermToDate(this.value)">
+    </div>
     <div class="search-bar">
       <span class="search-icon">🔍</span>
       <input type="text" id="term-search" placeholder="Search subject code, room…" oninput="renderTerm()">
@@ -624,6 +719,10 @@
     <button class="text-link-btn" style="width:auto;margin:0 0 1rem;text-align:left" onclick="backToFriendSearch()">← Search someone else</button>
     <div class="friend-name-banner" id="friend-name-banner">—</div>
 
+    <div class="jump-to-date-row">
+      <label class="finder-label" for="friend-term-jump-date">Jump to date</label>
+      <input type="date" id="friend-term-jump-date" min="2026-06-15" max="2026-09-08" onchange="jumpFriendTermToDate(this.value)">
+    </div>
     <div class="search-bar">
       <span class="search-icon">🔍</span>
       <input type="text" id="friend-term-search" placeholder="Search subject code, room…" oninput="renderFriendTerm()">
@@ -644,6 +743,13 @@
 
   <div class="error-msg" id="friend-view-error"></div>
 </div>
+
+<div id="tab-attendance" class="content" style="display:none">
+  <div class="attendance-tracker-intro">Present/Absent is marked from each class's tile on the <strong>Today</strong> tab — this page just shows where you stand.</div>
+  <div id="attendance-tracker-list"></div>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <script>
 // ─── CONFIG — paste your Apps Script Web App URL here ──────────
@@ -715,6 +821,13 @@ let ROLL_IDX = {};     // roll number → email
 let currentUser = null;
 let currentToken = null; // this device's saved auth token for currentUser, if any
 
+// Attendance Tracker state. COURSE_BUFFERS is global reference data (code
+// → allowed-absence count), loaded with the rest of the timetable data.
+// myAttendance.records is per-student and only loaded once signed in.
+let COURSE_BUFFERS = {};
+let myAttendance = { records: {} }; // "date|slotKey|CODE" -> "present" | "absent"
+let attendanceBannerDismissed = false; // resets every page load — by design, see updateAttendanceBanner()
+
 // Term-4 runs June 15 – Sep 8, 2026. If the real "today" falls outside this
 // window (e.g. testing before/after the term), clamp to the nearest term date
 // instead of showing a date with no data.
@@ -730,6 +843,16 @@ function getTermTodayDate() {
 
 let viewDate = getTermTodayDate();
 
+// ─── TOAST — lightweight, non-blocking feedback (e.g. a failed save) ──
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' toast-error' : '');
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
 // ─── LOAD DATA FROM APPS SCRIPT WEB APP ──────────────────────
 // Stale-while-revalidate: render instantly from local cache if we have
 // one, then quietly re-fetch in the background and only touch the UI
@@ -737,10 +860,12 @@ let viewDate = getTermTodayDate();
 // no cache yet, so it falls back to the old wait-for-fetch behavior.
 const CACHE_KEY_TT  = 'iimT4_cache_timetable';
 const CACHE_KEY_STU = 'iimT4_cache_students';
+const CACHE_KEY_CB  = 'iimT4_cache_coursebuffers';
 
-function setData(tt, stu) {
+function setData(tt, stu, buffers) {
   TT       = tt;
   STUDENTS = stu;
+  COURSE_BUFFERS = buffers || {};
   ROLL_IDX = {};
   for (const [email, s] of Object.entries(STUDENTS)) {
     if (s.roll) ROLL_IDX[s.roll.toLowerCase()] = email;
@@ -748,12 +873,17 @@ function setData(tt, stu) {
 }
 
 function rerenderCurrentView() {
-  const today  = document.getElementById('tab-today');
-  const term   = document.getElementById('tab-term');
-  const finder = document.getElementById('tab-finder');
-  if (today  && today.style.display  !== 'none') renderToday();
-  if (term   && term.style.display   !== 'none') renderTerm();
-  if (finder && finder.style.display !== 'none') renderFinder();
+  const today      = document.getElementById('tab-today');
+  const term       = document.getElementById('tab-term');
+  const finder     = document.getElementById('tab-finder');
+  const friend     = document.getElementById('tab-friend');
+  const attendance = document.getElementById('tab-attendance');
+  if (today      && today.style.display      !== 'none') renderToday();
+  if (term       && term.style.display       !== 'none') renderTerm();
+  if (finder     && finder.style.display     !== 'none') renderFinder();
+  if (friend     && friend.style.display     !== 'none' && friendViewData) renderFriendTerm();
+  if (attendance && attendance.style.display !== 'none') renderAttendanceTracker();
+  updateAttendanceBanner();
 }
 
 async function loadData() {
@@ -766,8 +896,9 @@ async function loadData() {
   try {
     const cachedTT  = localStorage.getItem(CACHE_KEY_TT);
     const cachedStu = localStorage.getItem(CACHE_KEY_STU);
+    const cachedCB  = localStorage.getItem(CACHE_KEY_CB);
     if (cachedTT && cachedStu) {
-      setData(JSON.parse(cachedTT), JSON.parse(cachedStu));
+      setData(JSON.parse(cachedTT), JSON.parse(cachedStu), cachedCB ? JSON.parse(cachedCB) : {});
       document.getElementById('loading').style.display = 'none';
       document.getElementById('student-hint').textContent =
         `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
@@ -786,16 +917,19 @@ async function loadData() {
     const combined = await res.json();
     const freshTT  = combined.timetable;
     const freshStu = combined.students;
+    const freshCB  = combined.courseBuffers || {};
     const ttJson   = JSON.stringify(freshTT);
     const stuJson  = JSON.stringify(freshStu);
+    const cbJson   = JSON.stringify(freshCB);
     const changed  = ttJson !== localStorage.getItem(CACHE_KEY_TT) || stuJson !== localStorage.getItem(CACHE_KEY_STU);
 
     try {
       localStorage.setItem(CACHE_KEY_TT, ttJson);
       localStorage.setItem(CACHE_KEY_STU, stuJson);
+      localStorage.setItem(CACHE_KEY_CB, cbJson);
     } catch(e) { /* storage full/unavailable — not fatal, just skip caching */ }
 
-    setData(freshTT, freshStu);
+    setData(freshTT, freshStu, freshCB);
 
     if (!renderedFromCache) {
       document.getElementById('loading').style.display = 'none';
@@ -1361,6 +1495,8 @@ function loginAs(email) {
   renderToday();
   startSessionWatch();
   startDataRefreshWatch();
+  attendanceBannerDismissed = false; // fresh sign-in counts as a new "visit"
+  loadMyAttendance();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1379,6 +1515,9 @@ function handleLogout() {
   if (currentUser) clearStoredToken(currentUser.email); // sign-out means re-enter PIN next time, even on this device
   currentUser  = null;
   currentToken = null;
+  myAttendance = { records: {} };
+  attendanceBannerDismissed = false;
+  document.getElementById('attendance-banner').style.display = 'none';
   clearSessionMemory();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -1542,8 +1681,10 @@ function renderToday() {
     <div class="stat-card"><div class="stat-num" style="color:var(--exam)">${exams.length}</div><div class="stat-lbl">exam${exams.length!==1?'s':''}</div></div>
   `;
 
-  const nowSlot  = getCurrentSlot();
+  const nowSlot   = getCurrentSlot();
   const container = document.getElementById('today-slots');
+  const todayKey_  = dateKey(new Date());
+  const canMarkThisDay = key <= todayKey_;
 
   if (sessions.length === 0) {
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
@@ -1560,6 +1701,17 @@ function renderToday() {
     if (isCurrent) cls += ' is-now';
     if (s.isClash) cls += ' is-clash';
 
+    let attendHtml = '';
+    if (!quiz && !exam) {
+      const code = getSessionBaseCode(s.cell);
+      const marked = myAttendance.records[key + '|' + s.slot.key + '|' + code];
+      const dis = canMarkThisDay ? '' : 'disabled';
+      attendHtml = `<div class="attend-row">
+        <button class="attend-btn attend-present ${marked==='present'?'active':''}" ${dis} onclick="markAttendance('${key}','${s.slot.key}','${code}','present',this)">✓ Present</button>
+        <button class="attend-btn attend-absent ${marked==='absent'?'active':''}" ${dis} onclick="markAttendance('${key}','${s.slot.key}','${code}','absent',this)">✕ Absent</button>
+      </div>`;
+    }
+
     return `<div class="${cls}">
       <div class="slot-time">${s.slot.time.replace('–','–<br>')}</div>
       <div class="slot-main">
@@ -1573,6 +1725,7 @@ function renderToday() {
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
           ${s.isClash ? '<span class="badge badge-clash">⚠ Clash</span>' : ''}
         </div>
+        ${attendHtml}
         ${s.sisterAlt ? `<div class="sister-alt">💡 ${s.sisterAlt.cell} available ${s.sisterAlt.slot.time} · ${s.sisterAlt.room}</div>${CLASH_FORM_URL !== "PASTE_CLASH_FORM_URL_HERE" ? `<a href="${CLASH_FORM_URL}" target="_blank" rel="noopener" class="clash-form-link">📋 Report this clash via the official form</a>` : ''}` : ''}
       </div>
     </div>`;
@@ -1587,6 +1740,175 @@ function getCurrentSlot() {
   if (m>=960&&m<1035) return 's5'; if (m>=1050&&m<1125) return 's6';
   if (m>=1140&&m<1215) return 's7'; if (m>=1245&&m<1320) return 's8';
   if (m>=1335&&m<1410) return 's9'; return null;
+}
+
+// ─── ATTENDANCE TRACKER ─────────────────────────────────────────
+// Present/Absent buttons live on the Today tab's regular-class tiles
+// (quiz/exam tiles deliberately don't get them). Buffers come from
+// COURSE_BUFFERS (credits from the sheet, with hardcoded overrides like
+// SS applied server-side) — see Code.gs for that side.
+
+// Every regular-class session strictly BEFORE today, across the whole
+// term, for the logged-in user. Used by both the reminder banner and the
+// Attendance Tracker's "unmarked" counts. "Strictly before today" (not
+// "up to and including") on purpose — today's own classes may not have
+// happened yet, so they're never nagged about until tomorrow.
+function getAllPastClassSessions() {
+  if (!currentUser || !TT) return [];
+  const todayKey_ = dateKey(new Date());
+  const dates = Object.keys(TT).filter(d => d < todayKey_).sort();
+  const out = [];
+  for (const d of dates) {
+    for (const s of getUserSessions(d)) {
+      if (!isQuiz(s.cell) && !isExam(s.cell)) out.push(s);
+    }
+  }
+  return out;
+}
+
+function getUnmarkedPastSessions() {
+  return getAllPastClassSessions().filter(s => {
+    const code = getSessionBaseCode(s.cell);
+    return !myAttendance.records[s.dateStr + '|' + s.slot.key + '|' + code];
+  });
+}
+
+async function loadMyAttendance() {
+  myAttendance = { records: {} };
+  if (!currentUser || !currentToken) return;
+  try {
+    const res = await postAction({ action: 'getMyAttendance', email: currentUser.email, token: currentToken });
+    if (res.success) myAttendance.records = res.records || {};
+  } catch (e) {
+    console.warn('Could not load attendance records:', e.message);
+  }
+  renderToday();
+  updateAttendanceBanner();
+  if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
+}
+
+async function markAttendance(dateStr, slotKey, code, status, btnEl) {
+  const recKey = dateStr + '|' + slotKey + '|' + code;
+  const prevStatus = myAttendance.records[recKey];
+  if (prevStatus === status) return; // already set to this — nothing to do
+
+  // Optimistic update so the tap feels instant; rolled back below if the
+  // server call fails.
+  myAttendance.records[recKey] = status;
+  renderToday();
+  updateAttendanceBanner();
+  if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
+
+  try {
+    const res = await postAction({
+      action: 'markAttendance', email: currentUser.email, token: currentToken,
+      date: dateStr, slotKey: slotKey, courseCode: code, status: status,
+    });
+    if (!res.success) throw new Error(res.error || 'failed');
+  } catch (e) {
+    if (prevStatus) myAttendance.records[recKey] = prevStatus; else delete myAttendance.records[recKey];
+    renderToday();
+    updateAttendanceBanner();
+    if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
+    showToast("Couldn't save that — check your connection and try again.", true);
+  }
+}
+
+// Dismissible, not blocking: closing it hides it for the rest of this
+// visit only — it comes back next time the app is opened, as long as
+// something's still unmarked. Resolving everything hides it immediately
+// too, same as a manual dismiss.
+function updateAttendanceBanner() {
+  const banner = document.getElementById('attendance-banner');
+  if (!currentUser) { banner.style.display = 'none'; return; }
+
+  const unmarked = getUnmarkedPastSessions();
+  if (unmarked.length === 0 || attendanceBannerDismissed) {
+    banner.style.display = 'none';
+    return;
+  }
+  document.getElementById('attendance-banner-text').textContent =
+    `You have ${unmarked.length} class${unmarked.length!==1?'es':''} not marked present or absent.`;
+  banner.style.display = 'flex';
+}
+
+function dismissAttendanceBanner() {
+  attendanceBannerDismissed = true;
+  document.getElementById('attendance-banner').style.display = 'none';
+}
+
+// Jumps straight to the earliest unmarked day on the Today tab, instead
+// of just nagging — saves clicking "Prev" repeatedly to find it.
+function goToEarliestUnmarked() {
+  const unmarked = getUnmarkedPastSessions();
+  if (unmarked.length === 0) return;
+  const earliest = unmarked.map(s => s.dateStr).sort()[0];
+  viewDate = new Date(earliest + 'T00:00:00');
+  switchTab('today', document.getElementById('tabbtn-today'));
+}
+
+function ensureCourseDisplayName(code) {
+  const name = COURSE_NAMES[code];
+  return name ? `${code} — ${name}` : code;
+}
+
+function renderAttendanceTracker() {
+  const container = document.getElementById('attendance-tracker-list');
+  if (!currentUser) { container.innerHTML = ''; return; }
+
+  const codes = [...new Set((currentUser.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
+  if (codes.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No courses found on your Course Matrix list.</p></div>`;
+    return;
+  }
+
+  // Past-session counts per course, for the "still unmarked" line.
+  const pastByCode = {};
+  for (const s of getAllPastClassSessions()) {
+    const code = getSessionBaseCode(s.cell);
+    pastByCode[code] = (pastByCode[code] || 0) + 1;
+  }
+
+  // Present/absent counts per course, straight from the attendance records.
+  const presentByCode = {}, absentByCode = {};
+  for (const key in myAttendance.records) {
+    const code = key.split('|')[2];
+    if (myAttendance.records[key] === 'present') presentByCode[code] = (presentByCode[code]||0) + 1;
+    else if (myAttendance.records[key] === 'absent') absentByCode[code] = (absentByCode[code]||0) + 1;
+  }
+
+  container.innerHTML = codes.map(code => {
+    const buffer  = COURSE_BUFFERS.hasOwnProperty(code) ? COURSE_BUFFERS[code] : null;
+    const present = presentByCode[code] || 0;
+    const absent  = absentByCode[code] || 0;
+    const marked  = present + absent;
+    const past    = pastByCode[code] || 0;
+    const unmarked = Math.max(0, past - marked);
+    const remaining = buffer === null ? null : buffer - absent;
+
+    let cardClass = '';
+    let pillText  = 'No credit data';
+    if (buffer !== null) {
+      cardClass = remaining <= 0 ? 'buffer-out' : remaining === 1 ? 'buffer-low' : 'buffer-ok';
+      pillText  = `${remaining} buffer${remaining!==1?'s':''} left`;
+    }
+
+    return `<div class="attendance-card ${cardClass}">
+      <div class="attendance-card-top">
+        <div>
+          <div class="attendance-card-name">${code}</div>
+          ${COURSE_NAMES[code] ? `<div class="attendance-card-fullname">${COURSE_NAMES[code]}</div>` : ''}
+        </div>
+        <span class="attendance-buffer-pill">${pillText}</span>
+      </div>
+      <div class="attendance-card-stats">
+        <span><b>${present}</b> present</span>
+        <span><b>${absent}</b> absent</span>
+        ${buffer !== null ? `<span><b>${buffer}</b> total buffer${buffer!==1?'s':''}</span>` : ''}
+      </div>
+      ${unmarked > 0 ? `<div class="attendance-card-unmarked">⚠ ${unmarked} past class${unmarked!==1?'es':''} not marked yet</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 // ─── TERM VIEW ────────────────────────────────────────────────
@@ -1640,7 +1962,7 @@ function renderTerm() {
       const ex = sessions.filter(s=>isExam(s.cell)).length;
       const cl = sessions.filter(s=>!isQuiz(s.cell)&&!isExam(s.cell)).length;
 
-      html += `<div class="calendar-day">
+      html += `<div class="calendar-day" id="term-daywrap-${d}">
         <div class="calendar-day-header ${isToday?'today-header':''}" onclick="toggleDay('${d}')">
           <div class="cal-date">
             <div class="cal-date-num">${dt.getDate()}</div>
@@ -1706,11 +2028,16 @@ function toggleTermClashFilter() {
 function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('tab-today').style.display  = tab==='today'?'block':'none';
-  document.getElementById('tab-term').style.display   = tab==='term'?'block':'none';
-  document.getElementById('tab-finder').style.display = tab==='finder'?'block':'none';
-  document.getElementById('tab-friend').style.display = tab==='friend'?'block':'none';
-  if (tab==='term') renderTerm();
+  document.getElementById('tab-today').style.display      = tab==='today'?'block':'none';
+  document.getElementById('tab-term').style.display        = tab==='term'?'block':'none';
+  document.getElementById('tab-finder').style.display      = tab==='finder'?'block':'none';
+  document.getElementById('tab-friend').style.display      = tab==='friend'?'block':'none';
+  document.getElementById('tab-attendance').style.display  = tab==='attendance'?'block':'none';
+
+  if (tab==='term') {
+    renderTerm();
+    scrollCalendarToToday('term-daywrap-', 'term-jump-date');
+  }
   if (tab==='finder') initFinderTab();
   if (tab==='friend' && !friendViewData) {
     document.getElementById('friend-view-error').style.display = 'none';
@@ -1718,6 +2045,44 @@ function switchTab(tab, el) {
     document.getElementById('friend-search-stage').style.display = 'block';
     renderFriendViewRecent();
   }
+  if (tab==='friend' && friendViewData) {
+    renderFriendTerm();
+    scrollCalendarToToday('friend-daywrap-', 'friend-term-jump-date');
+  }
+  if (tab==='attendance') renderAttendanceTracker();
+}
+
+// Lands the Full Term / Friends calendar on today's date every time the
+// tab is opened, so there's no manual scrolling needed to find "now".
+// Called only from switchTab — never from renderTerm()/renderFriendTerm()
+// themselves, so typing in the search box doesn't keep yanking the view
+// back to today on every keystroke.
+function scrollCalendarToToday(wrapPrefix, dateInputId) {
+  const key = dateKey(new Date());
+  const dateInput = document.getElementById(dateInputId);
+  if (dateInput) dateInput.value = key;
+  setTimeout(() => {
+    const el = document.getElementById(wrapPrefix + key);
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, 0);
+}
+
+function jumpTermToDate(dateStr) {
+  if (!dateStr) return;
+  const el = document.getElementById('term-daywrap-' + dateStr);
+  if (!el) { showToast("That date isn't in the loaded calendar."); return; }
+  const body = document.getElementById('day-' + dateStr);
+  if (body && !body.classList.contains('open')) body.classList.add('open');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function jumpFriendTermToDate(dateStr) {
+  if (!dateStr) return;
+  const el = document.getElementById('friend-daywrap-' + dateStr);
+  if (!el) { showToast("That date isn't in the loaded calendar."); return; }
+  const body = document.getElementById('friend-day-' + dateStr);
+  if (body && !body.classList.contains('open')) body.classList.add('open');
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function dateKey(d) {
@@ -2040,6 +2405,7 @@ async function selectFriendForView(email) {
     sel.value = '';
 
     renderFriendTerm();
+    scrollCalendarToToday('friend-daywrap-', 'friend-term-jump-date');
   } catch (e) {
     document.getElementById('friend-result-stage').style.display = 'none';
     document.getElementById('friend-search-stage').style.display = 'block';
@@ -2153,7 +2519,7 @@ function renderFriendTerm() {
       const ex = sessions.filter(s=>isExam(s.cell)).length;
       const cl = sessions.filter(s=>!isQuiz(s.cell)&&!isExam(s.cell)).length;
 
-      html += `<div class="calendar-day">
+      html += `<div class="calendar-day" id="friend-daywrap-${d}">
         <div class="calendar-day-header ${isToday?'today-header':''}" onclick="toggleFriendDay('${d}')">
           <div class="cal-date">
             <div class="cal-date-num">${dt.getDate()}</div>

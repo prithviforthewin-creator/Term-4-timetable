@@ -119,6 +119,13 @@
      LOGIN
   ════════════════════════════════════════════════════════════ */
   #login-screen{min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;position:relative}
+  #pin-screen{min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem}
+
+  .text-link-btn{
+    background:none;border:none;padding:0;margin-top:.9rem;cursor:pointer;width:100%;text-align:center;
+    font-family:var(--font-body);font-size:12.5px;color:var(--ink-muted);text-decoration:underline;display:block;
+  }
+  .text-link-btn:hover{color:var(--accent)}
 
   .theme-toggle-corner{position:absolute;top:1.5rem;right:1.5rem}
 
@@ -414,6 +421,37 @@
     background:var(--surface);border:1px dashed var(--border-strong);border-radius:var(--radius);
   }
 
+  /* ════════════════════════════════════════════════════════════
+     FRIEND SCHEDULE VIEWER
+  ════════════════════════════════════════════════════════════ */
+  .friend-view-trigger{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink-muted);
+    padding:.55rem 1rem;cursor:pointer;font-size:12.5px;font-family:var(--font-body);font-weight:500;
+    display:inline-flex;align-items:center;gap:.4rem;transition:all .15s;margin-bottom:1.25rem;
+  }
+  .friend-view-trigger:hover{color:var(--ink);border-color:var(--border-strong)}
+
+  .friend-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;
+    align-items:flex-start;justify-content:center;padding:3vh 1rem;overflow-y:auto;
+  }
+  .friend-overlay-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+    padding:1.75rem;width:100%;max-width:480px;box-shadow:var(--shadow-pop);margin-bottom:3vh;
+  }
+  .friend-overlay-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+  .friend-overlay-title{font-family:var(--font-display);font-size:19px;font-weight:600;color:var(--ink)}
+  .friend-overlay-close{
+    background:var(--surface-2);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;
+    color:var(--ink-muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;
+  }
+  .friend-overlay-close:hover{color:var(--ink);border-color:var(--border-strong)}
+
+  .friend-name-banner{
+    font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink);
+    margin:1rem 0 .85rem;padding-left:.1rem;
+  }
+
   @media(max-width:600px){
     .content{padding:1.25rem 1rem}
     .topbar{padding:.85rem 1rem}
@@ -441,6 +479,8 @@
     <h1>Term 4 Schedule</h1>
     <p>Enter your IIM email or roll number to see your personal timetable.</p>
 
+    <div class="error-msg" id="kicked-msg" style="display:none">You were signed out because this account was logged in on another device.</div>
+
     <div id="recent-list-wrap" style="display:none;margin-bottom:1.25rem">
       <div style="font-size:11px;color:var(--ink-faint);letter-spacing:.05em;margin-bottom:.5rem;text-transform:uppercase;font-weight:600">Recently viewed</div>
       <div id="recent-list" style="display:flex;flex-direction:column;gap:.4rem"></div>
@@ -453,6 +493,44 @@
     <button class="btn-primary" onclick="handleLogin()">View my schedule →</button>
     <div class="error-msg" id="error-msg">No student found. Try your full IIM email or roll number.</div>
     <div class="student-hint" id="student-hint"></div>
+  </div>
+</div>
+
+<!-- PIN AUTH -->
+<div id="pin-screen">
+  <div class="login-card">
+    <div class="iim-mark">IIM Indore · PGP 2025–27</div>
+    <h1 id="pin-title">One moment…</h1>
+    <p id="pin-sub"></p>
+
+    <div id="pin-set-block" style="display:none">
+      <div class="input-group">
+        <label>Verification code (emailed to you)</label>
+        <input type="text" id="pin-code" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="one-time-code"/>
+      </div>
+      <div class="input-group">
+        <label>Choose a 6-digit PIN</label>
+        <input type="password" id="pin-new" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password"/>
+      </div>
+      <div class="input-group">
+        <label>Confirm PIN</label>
+        <input type="password" id="pin-new-confirm" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password"/>
+      </div>
+      <button class="text-link-btn" id="pin-resend-btn" onclick="resendPinCode()" style="width:auto;margin:.5rem 0 0">Resend code</button>
+    </div>
+
+    <div id="pin-verify-block" style="display:none">
+      <div class="input-group">
+        <label>PIN</label>
+        <input type="password" id="pin-verify" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="current-password"/>
+      </div>
+      <button class="text-link-btn" onclick="startForgotPin()" style="width:auto;margin:.5rem 0 0">Forgot your PIN?</button>
+    </div>
+
+    <button class="btn-primary" id="pin-submit-btn" onclick="submitPin()" style="display:none">Continue →</button>
+    <div class="error-msg" id="pin-error"></div>
+    <div class="student-hint" id="pin-hint"></div>
+    <button class="text-link-btn" onclick="cancelPinFlow()">← Not you? Go back</button>
   </div>
 </div>
 
@@ -485,6 +563,7 @@
       </div>
       <button class="nav-btn" onclick="changeDay(1)">Next →</button>
     </div>
+    <button class="friend-view-trigger" onclick="openFriendView()">👀 View a friend's schedule</button>
     <div class="stats-row" id="today-stats"></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Class</div>
@@ -530,6 +609,47 @@
     </div>
 
     <div id="finder-results"></div>
+  </div>
+</div>
+
+<!-- FRIEND SCHEDULE VIEWER -->
+<div id="friend-view-overlay" class="friend-overlay">
+  <div class="friend-overlay-card">
+    <div class="friend-overlay-header">
+      <div class="friend-overlay-title">View a friend's schedule</div>
+      <button class="friend-overlay-close" onclick="closeFriendView()">✕</button>
+    </div>
+
+    <div id="friend-search-stage">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="friend-view-search-input" placeholder="Search by name, email or roll no…" oninput="renderFriendViewSearch()" onfocus="renderFriendViewSearch()">
+      </div>
+      <div id="friend-view-search-results" class="finder-search-results"></div>
+
+      <div id="friend-view-recent-section" style="margin-top:.8rem">
+        <div class="finder-label" style="margin-bottom:.4rem">Recently viewed</div>
+        <div id="friend-view-recent-chips" class="finder-recent-chips"></div>
+      </div>
+    </div>
+
+    <div id="friend-result-stage" style="display:none">
+      <button class="text-link-btn" style="width:auto;margin:0;text-align:left" onclick="backToFriendSearch()">← Search someone else</button>
+
+      <div class="date-nav" style="margin-top:1rem">
+        <button class="nav-btn" onclick="changeFriendDay(-1)">← Prev</button>
+        <div class="date-display">
+          <div class="day-name" id="friend-view-day-name">—</div>
+          <div class="date-full" id="friend-view-date-full">—</div>
+        </div>
+        <button class="nav-btn" onclick="changeFriendDay(1)">Next →</button>
+      </div>
+
+      <div class="friend-name-banner" id="friend-name-banner">—</div>
+      <div class="slot-list" id="friend-view-slots"></div>
+    </div>
+
+    <div class="error-msg" id="friend-view-error"></div>
   </div>
 </div>
 
@@ -601,6 +721,7 @@ let TT       = null;   // timetable data from Drive
 let STUDENTS = null;   // student data from Drive
 let ROLL_IDX = {};     // roll number → email
 let currentUser = null;
+let currentToken = null; // this device's saved auth token for currentUser, if any
 
 // Term-4 runs June 15 – Sep 8, 2026. If the real "today" falls outside this
 // window (e.g. testing before/after the term), clamp to the nearest term date
@@ -664,15 +785,15 @@ async function loadData() {
   } catch(e) { /* corrupted cache — ignore, fall through to a real fetch */ }
 
   try {
-    const [ttRes, stuRes] = await Promise.all([
-      fetch(WEBAPP_URL + "?type=timetable"),
-      fetch(WEBAPP_URL + "?type=students"),
-    ]);
+    // One request instead of two — the backend now serves timetable +
+    // students together (cached server-side too), so a page load only
+    // costs one Apps Script execution instead of two.
+    const res = await fetch(WEBAPP_URL + "?type=all");
+    if (!res.ok) throw new Error("Failed to fetch data from Apps Script");
 
-    if (!ttRes.ok || !stuRes.ok) throw new Error("Failed to fetch data from Apps Script");
-
-    const freshTT  = await ttRes.json();
-    const freshStu = await stuRes.json();
+    const combined = await res.json();
+    const freshTT  = combined.timetable;
+    const freshStu = combined.students;
     const ttJson   = JSON.stringify(freshTT);
     const stuJson  = JSON.stringify(freshStu);
     const changed  = ttJson !== localStorage.getItem(CACHE_KEY_TT) || stuJson !== localStorage.getItem(CACHE_KEY_STU);
@@ -795,17 +916,386 @@ function clearSessionMemory() {
   } catch(e) {}
 }
 
-// Try to auto-load the last signed-in person; otherwise show login + recent list
-function tryAutoLogin() {
-  const lastEmail = getLastUser();
+// ─── PIN AUTH (frontend) ──────────────────────────────────────
+// One token per email, saved on whichever device verified it. A device
+// with no saved token for an email always has to go through setPin/
+// verifyPin again — that's what makes "new device = retype PIN" true.
+const LS_TOKEN_PREFIX = "t4_token_";
+function getStoredToken(email)        { try { return localStorage.getItem(LS_TOKEN_PREFIX + email); } catch(e) { return null; } }
+function setStoredToken(email, token) { try { localStorage.setItem(LS_TOKEN_PREFIX + email, token); } catch(e) {} }
+function clearStoredToken(email)      { try { localStorage.removeItem(LS_TOKEN_PREFIX + email); } catch(e) {} }
 
-  if (lastEmail && STUDENTS[lastEmail]) {
-    loginAs(lastEmail);
+// Every write call to the Apps Script must use text/plain, not
+// application/json — application/json triggers a CORS preflight that
+// the Apps Script Web App doesn't handle, and the request silently fails.
+async function postAction(payload) {
+  const res = await fetch(WEBAPP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
+
+let pinFlowEmail = null;
+let pinFlowMode  = null; // 'set' | 'verify' | 'error'
+let pinFlowRetryTarget = 'check'; // what a 'Retry' tap re-attempts: 'check' (hasPinSet) or 'sendCode' (requestPinCode)
+
+// Entry point for every login path (manual entry, recent-chip click, auto-login
+// retry). If this device already holds a token for this email, skip straight
+// in — otherwise ask the backend whether a PIN exists yet and show the right
+// screen (set vs verify).
+async function beginAuthFor(email) {
+  if (!STUDENTS[email]) return;
+  document.getElementById('kicked-msg').style.display = 'none';
+
+  const existingToken = getStoredToken(email);
+  if (existingToken) {
+    loginAs(email);
     return;
   }
 
-  // No remembered session — show login screen with recent list if any
+  pinFlowEmail = email;
+  pinFlowMode  = null;
+  pinFlowRetryTarget = 'check';
+
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('pin-screen').style.display = 'flex';
+  document.getElementById('pin-error').style.display = 'none';
+  document.getElementById('pin-set-block').style.display = 'none';
+  document.getElementById('pin-verify-block').style.display = 'none';
+  document.getElementById('pin-submit-btn').style.display = 'none';
+  document.getElementById('pin-code').value = '';
+  document.getElementById('pin-new').value = '';
+  document.getElementById('pin-new-confirm').value = '';
+  document.getElementById('pin-verify').value = '';
+  document.getElementById('pin-title').textContent = 'One moment…';
+  document.getElementById('pin-sub').innerHTML = '';
+  document.getElementById('pin-hint').textContent = 'Checking your account…';
+
+  try {
+    const res = await postAction({ action: 'hasPinSet', email });
+    if (res.success && res.hasPinSet) {
+      pinFlowMode = 'verify';
+      document.getElementById('pin-title').textContent = 'Enter your PIN';
+      document.getElementById('pin-sub').innerHTML = `Welcome back, <strong>${STUDENTS[email].name}</strong>.`;
+      document.getElementById('pin-verify-block').style.display = 'block';
+      document.getElementById('pin-hint').textContent = '';
+      document.getElementById('pin-submit-btn').textContent = 'Continue →';
+      document.getElementById('pin-submit-btn').style.display = 'block';
+    } else {
+      await enterSetMode_(email);
+    }
+  } catch (e) {
+    pinFlowMode = 'error';
+    pinFlowRetryTarget = 'check';
+    document.getElementById('pin-title').textContent = 'Connection problem';
+    document.getElementById('pin-hint').textContent = '';
+    showPinError('Could not reach the server. Check your connection and try again.');
+    document.getElementById('pin-submit-btn').textContent = 'Retry →';
+    document.getElementById('pin-submit-btn').style.display = 'block';
+  }
+}
+
+// Sends the verification code, then shows the code+new-PIN fields together.
+// Used for brand-new signups (from beginAuthFor) AND self-serve forgot-PIN
+// (from startForgotPin) AND a manual resend — same flow either way.
+async function enterSetMode_(email) {
+  pinFlowMode = 'set';
+  document.getElementById('pin-title').textContent = 'Sending you a code…';
+  document.getElementById('pin-sub').innerHTML = `Sending a verification code to <strong>${email}</strong>.`;
+  document.getElementById('pin-hint').textContent = '';
+  document.getElementById('pin-error').style.display = 'none';
+  document.getElementById('pin-set-block').style.display = 'none';
+  document.getElementById('pin-verify-block').style.display = 'none';
+  document.getElementById('pin-submit-btn').style.display = 'none';
+  document.getElementById('pin-code').value = '';
+  document.getElementById('pin-new').value = '';
+  document.getElementById('pin-new-confirm').value = '';
+
+  try {
+    const res = await postAction({ action: 'requestPinCode', email });
+    if (res.success || res.error === 'too_soon') {
+      document.getElementById('pin-title').textContent = 'Set up your PIN';
+      document.getElementById('pin-sub').innerHTML = res.success
+        ? `We've emailed a code to <strong>${email}</strong>. Enter it below with your new PIN.`
+        : `We already sent a code to <strong>${email}</strong> recently — check your inbox, or wait a moment and tap Resend.`;
+      document.getElementById('pin-set-block').style.display = 'block';
+      document.getElementById('pin-hint').textContent = 'The code expires in 10 minutes.';
+      document.getElementById('pin-submit-btn').textContent = 'Set PIN →';
+      document.getElementById('pin-submit-btn').style.display = 'block';
+    } else {
+      pinFlowMode = 'error';
+      pinFlowRetryTarget = 'sendCode';
+      document.getElementById('pin-title').textContent = 'Connection problem';
+      showPinError("Couldn't send a code right now. Try again.");
+      document.getElementById('pin-submit-btn').textContent = 'Retry →';
+      document.getElementById('pin-submit-btn').style.display = 'block';
+    }
+  } catch (e) {
+    pinFlowMode = 'error';
+    pinFlowRetryTarget = 'sendCode';
+    document.getElementById('pin-title').textContent = 'Connection problem';
+    showPinError('Could not reach the server. Check your connection and try again.');
+    document.getElementById('pin-submit-btn').textContent = 'Retry →';
+    document.getElementById('pin-submit-btn').style.display = 'block';
+  }
+}
+
+// "Forgot your PIN?" on the verify screen routes into the exact same
+// code-based flow as first-time setup — no separate mechanism needed.
+function startForgotPin() {
+  if (!pinFlowEmail) return;
+  enterSetMode_(pinFlowEmail);
+}
+
+function resendPinCode() {
+  if (!pinFlowEmail) return;
+  enterSetMode_(pinFlowEmail);
+}
+
+function cancelPinFlow() {
+  pinFlowEmail = null;
+  pinFlowMode  = null;
+  document.getElementById('pin-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function submitPin() {
+  if (pinFlowMode === 'error') {
+    if (pinFlowRetryTarget === 'sendCode') enterSetMode_(pinFlowEmail);
+    else beginAuthFor(pinFlowEmail);
+    return;
+  }
+
+  const email = pinFlowEmail;
+  if (!email) return;
+  document.getElementById('pin-error').style.display = 'none';
+
+  if (pinFlowMode === 'set') {
+    const code    = document.getElementById('pin-code').value.trim();
+    const pin     = document.getElementById('pin-new').value.trim();
+    const confirm = document.getElementById('pin-new-confirm').value.trim();
+    if (!/^\d{6}$/.test(code)) { showPinError('Enter the 6-digit code from your email.'); return; }
+    if (!/^\d{6}$/.test(pin))  { showPinError('PIN must be exactly 6 digits.'); return; }
+    if (pin !== confirm)       { showPinError("PINs don't match — try again."); return; }
+
+    setPinBusy(true);
+    try {
+      const res = await postAction({ action: 'setPin', email, pin, code });
+      setPinBusy(false);
+      if (res.success) {
+        setStoredToken(email, res.token);
+        completePinFlow(email);
+      } else if (res.error === 'wrong_code') {
+        showPinError(`Wrong code — ${res.attemptsRemaining} attempt(s) left.`);
+      } else if (res.error === 'too_many_attempts') {
+        showPinError('Too many wrong attempts. Tap Resend to get a fresh code.');
+      } else if (res.error === 'code_expired_or_missing' || res.error === 'code_required') {
+        showPinError('That code has expired or is missing. Tap Resend to get a new one.');
+      } else {
+        showPinError('Something went wrong (' + (res.error || 'unknown') + '). Try again.');
+      }
+    } catch (e) {
+      setPinBusy(false);
+      showPinError('Could not reach the server. Check your connection and try again.');
+    }
+
+  } else if (pinFlowMode === 'verify') {
+    const pin = document.getElementById('pin-verify').value.trim();
+    if (!/^\d{6}$/.test(pin)) { showPinError('Enter your 6-digit PIN.'); return; }
+
+    setPinBusy(true);
+    try {
+      const res = await postAction({ action: 'verifyPin', email, pin });
+      setPinBusy(false);
+      if (res.success) {
+        setStoredToken(email, res.token);
+        completePinFlow(email);
+      } else if (res.error === 'wrong_pin') {
+        showPinError(`Wrong PIN — ${res.attemptsRemaining} attempt(s) left.`);
+      } else if (res.error === 'locked') {
+        showPinError(`Too many wrong attempts. Try again in ${res.minutesRemaining} minute(s).`);
+      } else if (res.error === 'no_pin_set') {
+        beginAuthFor(email); // backend disagrees with our hasPinSet check — re-sync
+      } else {
+        showPinError('Something went wrong (' + (res.error || 'unknown') + '). Try again.');
+      }
+    } catch (e) {
+      setPinBusy(false);
+      showPinError('Could not reach the server. Check your connection and try again.');
+    }
+  }
+}
+
+function showPinError(msg) {
+  const el = document.getElementById('pin-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function setPinBusy(isBusy) {
+  const btn = document.getElementById('pin-submit-btn');
+  btn.disabled = isBusy;
+  btn.textContent = isBusy ? 'Please wait…' : (pinFlowMode === 'set' ? 'Set PIN →' : 'Continue →');
+}
+
+function completePinFlow(email) {
+  pinFlowEmail = null;
+  pinFlowMode  = null;
+  document.getElementById('pin-code').value = '';
+  document.getElementById('pin-new').value = '';
+  document.getElementById('pin-new-confirm').value = '';
+  document.getElementById('pin-verify').value = '';
+  document.getElementById('pin-screen').style.display = 'none';
+  loginAs(email);
+}
+
+// Try to auto-load the last signed-in person; otherwise show login + recent list.
+// A remembered email alone isn't enough — the device's saved token has to
+// still be valid server-side too (it won't be, right after resetAllAuth(),
+// or if this device got evicted by the 6-device cap), so it's checked
+// before trusting it.
+async function tryAutoLogin() {
+  const lastEmail = getLastUser();
+  const token = lastEmail ? getStoredToken(lastEmail) : null;
+
+  if (lastEmail && STUDENTS[lastEmail] && token) {
+    try {
+      const res = await postAction({ action: 'checkToken', email: lastEmail, token });
+      if (res.success && res.valid) {
+        loginAs(lastEmail);
+        return;
+      }
+      clearStoredToken(lastEmail); // server says this token's dead — don't keep trying it
+    } catch (e) {
+      // Network hiccup on the check itself — don't lock someone out of data
+      // they already have cached just because one verification call failed.
+      loginAs(lastEmail);
+      return;
+    }
+  }
+
+  document.getElementById('login-screen').style.display = 'flex';
+  renderRecentList();
+}
+
+// ─── SESSION WATCH ─────────────────────────────────────────────
+// Login is single-active-device now: logging in elsewhere silently
+// invalidates this device's token server-side, but nothing pushes that
+// news to an already-open tab. So this device asks — on a short timer,
+// whenever it comes back to the foreground (phone unlocked, tab
+// refocused), AND on every tap anywhere in the app — "is my token still
+// the live one?" If a tap fires a check less than SESSION_CHECK_MIN_GAP_MS
+// after the last one, it's skipped (so rapidly tapping through days
+// doesn't spam the backend); the timer and foreground checks always run
+// regardless, since those aren't spam-prone the way taps are.
+let sessionCheckInterval = null;
+let lastSessionCheckAt   = 0;
+const SESSION_CHECK_INTERVAL_MS = 20 * 1000; // 20 seconds
+const SESSION_CHECK_MIN_GAP_MS  = 8 * 1000;  // floor between tap-triggered checks
+
+function startSessionWatch() {
+  stopSessionWatch();
+  sessionCheckInterval = setInterval(checkSessionStillValid, SESSION_CHECK_INTERVAL_MS);
+  document.addEventListener('visibilitychange', onVisibilityCheckSession);
+  document.addEventListener('click', onTapCheckSession);
+}
+
+function stopSessionWatch() {
+  if (sessionCheckInterval) { clearInterval(sessionCheckInterval); sessionCheckInterval = null; }
+  document.removeEventListener('visibilitychange', onVisibilityCheckSession);
+  document.removeEventListener('click', onTapCheckSession);
+}
+
+function onVisibilityCheckSession() {
+  if (document.visibilityState === 'visible' && currentUser) checkSessionStillValid();
+}
+
+function onTapCheckSession() {
+  if (!currentUser) return;
+  if (Date.now() - lastSessionCheckAt < SESSION_CHECK_MIN_GAP_MS) return; // checked recently — skip
+  checkSessionStillValid();
+}
+
+async function checkSessionStillValid() {
+  if (!currentUser || !currentToken) return;
+  lastSessionCheckAt = Date.now();
+  try {
+    const res = await postAction({ action: 'checkToken', email: currentUser.email, token: currentToken });
+    if (res.success && !res.valid) forceSignOutElsewhere();
+  } catch (e) {
+    // Network hiccup on the check itself — don't sign someone out just
+    // because one connectivity blip happened; it'll check again next cycle.
+  }
+}
+
+// ─── BACKGROUND DATA REFRESH ────────────────────────────────────
+// loadData() only ever fetches once, at page load — nothing re-asks the
+// server afterward on its own, so a tab left open never finds out about
+// a Sheet edit until it's reloaded. This re-checks periodically and on
+// every foreground resume, quietly re-rendering only if something
+// actually changed — same shape as the session watch above, just for
+// schedule data instead of login validity.
+let dataRefreshInterval = null;
+const DATA_REFRESH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+
+function startDataRefreshWatch() {
+  stopDataRefreshWatch();
+  dataRefreshInterval = setInterval(refreshDataInBackground, DATA_REFRESH_INTERVAL_MS);
+  document.addEventListener('visibilitychange', onVisibilityRefreshData);
+}
+
+function stopDataRefreshWatch() {
+  if (dataRefreshInterval) { clearInterval(dataRefreshInterval); dataRefreshInterval = null; }
+  document.removeEventListener('visibilitychange', onVisibilityRefreshData);
+}
+
+function onVisibilityRefreshData() {
+  if (document.visibilityState === 'visible') refreshDataInBackground();
+}
+
+async function refreshDataInBackground() {
+  if (WEBAPP_URL === "PASTE_WEBAPP_URL_HERE") return;
+
+  try {
+    const res = await fetch(WEBAPP_URL + "?type=all");
+    if (!res.ok) return;
+
+    const combined = await res.json();
+    const freshTT  = combined.timetable;
+    const freshStu = combined.students;
+    const ttJson   = JSON.stringify(freshTT);
+    const stuJson  = JSON.stringify(freshStu);
+    const changed  = ttJson !== localStorage.getItem(CACHE_KEY_TT) || stuJson !== localStorage.getItem(CACHE_KEY_STU);
+
+    if (!changed) return; // nothing new — leave the screen exactly as it is
+
+    try {
+      localStorage.setItem(CACHE_KEY_TT, ttJson);
+      localStorage.setItem(CACHE_KEY_STU, stuJson);
+    } catch (e) { /* storage full/unavailable — not fatal, just skip caching */ }
+
+    setData(freshTT, freshStu);
+    document.getElementById('student-hint').textContent =
+      `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+    rerenderCurrentView();
+  } catch (e) {
+    // Network hiccup — silently skip, the next cycle or foreground resume will try again
+  }
+}
+
+function forceSignOutElsewhere() {
+  stopSessionWatch();
+  stopDataRefreshWatch();
+  if (currentUser) clearStoredToken(currentUser.email);
+  currentUser  = null;
+  currentToken = null;
+  clearSessionMemory();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-input').value = '';
+  document.getElementById('kicked-msg').style.display = 'block';
   renderRecentList();
 }
 
@@ -822,7 +1312,7 @@ function renderRecentList() {
   wrap.style.display = 'block';
   list.innerHTML = recent.map(email => {
     const s = STUDENTS[email];
-    return `<div class="recent-chip" onclick="loginAs('${email}')">
+    return `<div class="recent-chip" onclick="beginAuthFor('${email}')">
       <div>
         <div class="recent-chip-name">${s.name}</div>
         <div class="recent-chip-roll">${s.roll}</div>
@@ -835,6 +1325,7 @@ function renderRecentList() {
 // ─── AUTH ─────────────────────────────────────────────────────
 function handleLogin() {
   if (!STUDENTS) return;
+  document.getElementById('kicked-msg').style.display = 'none';
   const raw = document.getElementById('login-input').value.trim().toLowerCase();
   let email = null;
 
@@ -856,33 +1347,46 @@ function handleLogin() {
   }
 
   document.getElementById('error-msg').style.display = 'none';
-  loginAs(email);
+  beginAuthFor(email);
 }
 
-// Central login function — used by manual login, recent-chip click, and auto-login
+// Central login function — used once a device's token has already been
+// verified for this email (by beginAuthFor, completePinFlow, or tryAutoLogin).
 function loginAs(email) {
   if (!STUDENTS[email]) return;
 
-  currentUser = { email, ...STUDENTS[email] };
+  currentUser  = { email, ...STUDENTS[email] };
+  currentToken = getStoredToken(email);
   saveRecentEmail(email);
 
   document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('pin-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('user-pill').innerHTML =
     `<span>${currentUser.name}</span> · ${currentUser.roll}`;
 
   viewDate = getTermTodayDate();
   renderToday();
+  startSessionWatch();
+  startDataRefreshWatch();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('login-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
+  ['pin-code', 'pin-new', 'pin-new-confirm', 'pin-verify'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+  });
 });
 
 function handleLogout() {
-  currentUser = null;
+  stopSessionWatch();
+  stopDataRefreshWatch();
+  if (currentUser) clearStoredToken(currentUser.email); // sign-out means re-enter PIN next time, even on this device
+  currentUser  = null;
+  currentToken = null;
   clearSessionMemory();
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -1377,6 +1881,211 @@ function renderFinder() {
   }
 
   results.innerHTML = html;
+}
+
+// ─── VIEW A FRIEND'S SCHEDULE ───────────────────────────────────
+// Separate from the Scheduler tab's multi-person comparison — this shows
+// one friend's actual day, using the same slot-card look as Today. Calls
+// the token-gated getFriendSchedule action; never touches anything but
+// schedule data for whoever's selected.
+let friendViewData = null;  // { name, roll, courses, schedule } from the last successful lookup
+let friendViewDate = null;  // this overlay's own date cursor — separate from the main Today tab's viewDate
+
+const LS_FRIEND_RECENT  = "t4_friend_recent_emails";
+const MAX_FRIEND_RECENT = 5;
+
+function getFriendRecentEmails() {
+  try { const raw = localStorage.getItem(LS_FRIEND_RECENT); return raw ? JSON.parse(raw) : []; }
+  catch (e) { return []; }
+}
+
+function saveFriendRecentEmail(email) {
+  try {
+    let recent = getFriendRecentEmails().filter(e => e !== email);
+    recent.unshift(email);
+    recent = recent.slice(0, MAX_FRIEND_RECENT);
+    localStorage.setItem(LS_FRIEND_RECENT, JSON.stringify(recent));
+  } catch (e) { /* localStorage unavailable — fail silently */ }
+}
+
+function openFriendView() {
+  friendViewData = null;
+  document.getElementById('friend-view-error').style.display = 'none';
+  document.getElementById('friend-result-stage').style.display = 'none';
+  document.getElementById('friend-search-stage').style.display = 'block';
+  document.getElementById('friend-view-search-input').value = '';
+  document.getElementById('friend-view-search-results').innerHTML = '';
+  renderFriendViewRecent();
+  document.getElementById('friend-view-overlay').style.display = 'flex';
+}
+
+function closeFriendView() {
+  document.getElementById('friend-view-overlay').style.display = 'none';
+}
+
+function backToFriendSearch() {
+  friendViewData = null;
+  document.getElementById('friend-view-error').style.display = 'none';
+  document.getElementById('friend-result-stage').style.display = 'none';
+  document.getElementById('friend-search-stage').style.display = 'block';
+  renderFriendViewRecent();
+}
+
+function renderFriendViewRecent() {
+  const recent  = getFriendRecentEmails().filter(e => STUDENTS[e] && e !== currentUser.email);
+  const section = document.getElementById('friend-view-recent-section');
+  const wrap    = document.getElementById('friend-view-recent-chips');
+
+  if (recent.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  wrap.innerHTML = recent.map(email => {
+    const s = STUDENTS[email];
+    return `<button class="finder-recent-chip-btn" onclick="selectFriendForView('${email}')">${s.name}</button>`;
+  }).join('');
+}
+
+// Live search-as-you-type, same pattern as the Scheduler tab's friend search
+function renderFriendViewSearch() {
+  const q = (document.getElementById('friend-view-search-input').value || '').trim().toLowerCase();
+  const results = document.getElementById('friend-view-search-results');
+  if (q.length < 2) { results.innerHTML = ''; return; }
+
+  const matches = Object.entries(STUDENTS)
+    .filter(([email, s]) => email !== currentUser.email &&
+      (s.name.toLowerCase().includes(q) || email.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q)))
+    .slice(0, 8);
+
+  if (matches.length === 0) {
+    results.innerHTML = `<div style="font-size:12px;color:var(--ink-muted);padding:.5rem">No matches</div>`;
+    return;
+  }
+
+  results.innerHTML = matches.map(([email, s]) => `
+    <div class="finder-search-result-item" onclick="selectFriendForView('${email}')">
+      <div>
+        <div class="finder-result-name">${s.name}</div>
+        <div class="finder-result-roll">${s.roll}</div>
+      </div>
+      <div class="finder-add-icon">→</div>
+    </div>`).join('');
+}
+
+async function selectFriendForView(email) {
+  if (!STUDENTS[email]) return;
+
+  document.getElementById('friend-view-error').style.display = 'none';
+  document.getElementById('friend-search-stage').style.display = 'none';
+  document.getElementById('friend-result-stage').style.display = 'block';
+  document.getElementById('friend-name-banner').textContent = 'Loading…';
+  document.getElementById('friend-view-slots').innerHTML = '';
+
+  try {
+    const res = await postAction({
+      action: 'getFriendSchedule',
+      email: currentUser.email,
+      token: currentToken,
+      targetEmail: email,
+    });
+
+    if (!res.success) {
+      document.getElementById('friend-result-stage').style.display = 'none';
+      document.getElementById('friend-search-stage').style.display = 'block';
+      showFriendViewError(res.error === 'invalid_token'
+        ? 'Your session needs refreshing — sign out and back in, then try again.'
+        : "Couldn't load that schedule. Try again.");
+      return;
+    }
+
+    friendViewData = res;
+    friendViewDate = new Date(viewDate); // start on whichever day the Today tab is currently showing
+    saveFriendRecentEmail(email);
+    renderFriendView();
+  } catch (e) {
+    document.getElementById('friend-result-stage').style.display = 'none';
+    document.getElementById('friend-search-stage').style.display = 'block';
+    showFriendViewError('Could not reach the server. Check your connection and try again.');
+  }
+}
+
+function showFriendViewError(msg) {
+  const el = document.getElementById('friend-view-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function changeFriendDay(n) {
+  friendViewDate = new Date(friendViewDate);
+  friendViewDate.setDate(friendViewDate.getDate() + n);
+  renderFriendView();
+}
+
+// Friend's schedule arrives already filtered to their own courses
+// server-side, so unlike getUserSessions() there's no course-matching to
+// redo here — just collect whatever cells exist for the day.
+function getFriendSessions(dateStr) {
+  if (!friendViewData) return [];
+  const day = friendViewData.schedule[dateStr] || {};
+  const results = [];
+  const seen = new Set();
+
+  for (const slot of SLOTS) {
+    for (const [room, slots] of Object.entries(day)) {
+      const cell = slots[slot.key];
+      if (!cell) continue;
+      const key = slot.key + '|' + cell;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ slot, room, cell });
+    }
+  }
+  return results;
+}
+
+function renderFriendView() {
+  if (!friendViewData) return;
+
+  const key      = dateKey(friendViewDate);
+  const isToday  = dateKey(new Date()) === key;
+  const nowSlot  = getCurrentSlot();
+  const sessions = getFriendSessions(key);
+
+  document.getElementById('friend-name-banner').innerHTML =
+    `${friendViewData.name} <span style="color:var(--ink-muted);font-weight:400">· ${friendViewData.roll}</span>`;
+  document.getElementById('friend-view-day-name').textContent = DAYS[friendViewDate.getDay()];
+  document.getElementById('friend-view-date-full').innerHTML =
+    friendViewDate.getDate() + ' ' + MONTHS[friendViewDate.getMonth()] + ' ' + friendViewDate.getFullYear() +
+    (isToday ? '<span class="today-badge">today</span>' : '');
+
+  const container = document.getElementById('friend-view-slots');
+  if (sessions.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for ${friendViewData.name.split(' ')[0]}'s courses</p></div>`;
+    return;
+  }
+
+  container.innerHTML = sessions.map(s => {
+    const quiz = isQuiz(s.cell), exam = isExam(s.cell);
+    const isCurrent = isToday && s.slot.key === nowSlot;
+    const fullName = getCourseName(s.cell);
+    let cls = 'slot-card';
+    if (quiz) cls += ' is-quiz';
+    else if (exam) cls += ' is-exam';
+    if (isCurrent) cls += ' is-now';
+
+    return `<div class="${cls}">
+      <div class="slot-time">${s.slot.time.replace('–','–<br>')}</div>
+      <div class="slot-main">
+        <div class="slot-subject">${s.cell}</div>
+        ${fullName ? `<div class="slot-subject-full">${fullName}</div>` : ''}
+        <div class="slot-meta">
+          <span class="badge badge-room">📍 ${s.room}</span>
+          <span class="badge badge-slot">${s.slot.label}</span>
+          ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
+          ${exam ? '<span class="badge badge-exam">End-term</span>' : ''}
+          ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // ─── INIT ─────────────────────────────────────────────────────

@@ -348,9 +348,18 @@
   }
   .search-bar input::placeholder{color:var(--ink-faint)}
   .search-bar input:focus{border-color:var(--accent)}
-  .term-filter-btn{display:inline-flex;align-items:center;gap:7px;margin-bottom:1.1rem;padding:.5rem .9rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--ink-muted);font-family:var(--font-body);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
+  .term-filter-btn{display:inline-flex;align-items:center;gap:7px;padding:.5rem .9rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--ink-muted);font-family:var(--font-body);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
   .term-filter-btn:hover{border-color:var(--quiz)}
   .term-filter-btn.active{background:var(--quiz-wash);color:var(--quiz);border-color:var(--quiz);font-weight:600}
+  .term-filter-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.1rem}
+  .term-subject-select{
+    width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+    padding:.7rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:13.5px;outline:none;
+    margin-bottom:.7rem;cursor:pointer;transition:border-color .15s;
+  }
+  .term-subject-select:focus{border-color:var(--accent)}
+  [data-theme="dark"] .term-subject-select{color-scheme:dark}
+  [data-theme="light"] .term-subject-select{color-scheme:light}
   .search-icon{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--ink-faint);font-size:14px}
 
   /* ════════════════════════════════════════════════════════════
@@ -424,29 +433,6 @@
   /* ════════════════════════════════════════════════════════════
      FRIEND SCHEDULE VIEWER
   ════════════════════════════════════════════════════════════ */
-  .friend-view-trigger{
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--ink-muted);
-    padding:.55rem 1rem;cursor:pointer;font-size:12.5px;font-family:var(--font-body);font-weight:500;
-    display:inline-flex;align-items:center;gap:.4rem;transition:all .15s;margin-bottom:1.25rem;
-  }
-  .friend-view-trigger:hover{color:var(--ink);border-color:var(--border-strong)}
-
-  .friend-overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;
-    align-items:flex-start;justify-content:center;padding:3vh 1rem;overflow-y:auto;
-  }
-  .friend-overlay-card{
-    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
-    padding:1.75rem;width:100%;max-width:480px;box-shadow:var(--shadow-pop);margin-bottom:3vh;
-  }
-  .friend-overlay-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
-  .friend-overlay-title{font-family:var(--font-display);font-size:19px;font-weight:600;color:var(--ink)}
-  .friend-overlay-close{
-    background:var(--surface-2);border:1px solid var(--border);border-radius:50%;width:28px;height:28px;
-    color:var(--ink-muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;
-  }
-  .friend-overlay-close:hover{color:var(--ink);border-color:var(--border-strong)}
-
   .friend-name-banner{
     font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink);
     margin:1rem 0 .85rem;padding-left:.1rem;
@@ -552,6 +538,7 @@
     <div class="tab active" onclick="switchTab('today',this)">Today</div>
     <div class="tab" onclick="switchTab('term',this)">Full term</div>
     <div class="tab" onclick="switchTab('finder',this)">Scheduler</div>
+    <div class="tab" onclick="switchTab('friend',this)">Friends</div>
   </div>
 
   <div id="tab-today" class="content">
@@ -563,7 +550,6 @@
       </div>
       <button class="nav-btn" onclick="changeDay(1)">Next →</button>
     </div>
-    <button class="friend-view-trigger" onclick="openFriendView()">👀 View a friend's schedule</button>
     <div class="stats-row" id="today-stats"></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Class</div>
@@ -577,11 +563,19 @@
   <div id="tab-term" class="content" style="display:none">
     <div class="search-bar">
       <span class="search-icon">🔍</span>
-      <input type="text" id="term-search" placeholder="Search subject, room…" oninput="renderTerm()">
+      <input type="text" id="term-search" placeholder="Search subject code, room…" oninput="renderTerm()">
     </div>
-    <button class="term-filter-btn" id="term-filter-btn" onclick="toggleTermExamFilter()">
-      <span class="dot dot-quiz"></span><span class="dot dot-exam"></span>Quiz &amp; exam days only
-    </button>
+    <select id="term-subject-filter" class="term-subject-select" onchange="renderTerm()">
+      <option value="">All subjects</option>
+    </select>
+    <div class="term-filter-row">
+      <button class="term-filter-btn" id="term-filter-btn" onclick="toggleTermExamFilter()">
+        <span class="dot dot-quiz"></span><span class="dot dot-exam"></span>Quiz &amp; exam days only
+      </button>
+      <button class="term-filter-btn" id="term-clash-filter-btn" onclick="toggleTermClashFilter()">
+        <span class="dot" style="background:var(--exam)"></span>Clash days only
+      </button>
+    </div>
     <div id="term-calendar"></div>
   </div>
 
@@ -612,45 +606,43 @@
   </div>
 </div>
 
-<!-- FRIEND SCHEDULE VIEWER -->
-<div id="friend-view-overlay" class="friend-overlay">
-  <div class="friend-overlay-card">
-    <div class="friend-overlay-header">
-      <div class="friend-overlay-title">View a friend's schedule</div>
-      <button class="friend-overlay-close" onclick="closeFriendView()">✕</button>
+<div id="tab-friend" class="content" style="display:none">
+  <div id="friend-search-stage">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="friend-view-search-input" placeholder="Search by name, email or roll no…" oninput="renderFriendViewSearch()" onfocus="renderFriendViewSearch()">
     </div>
+    <div id="friend-view-search-results" class="finder-search-results"></div>
 
-    <div id="friend-search-stage">
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="friend-view-search-input" placeholder="Search by name, email or roll no…" oninput="renderFriendViewSearch()" onfocus="renderFriendViewSearch()">
-      </div>
-      <div id="friend-view-search-results" class="finder-search-results"></div>
-
-      <div id="friend-view-recent-section" style="margin-top:.8rem">
-        <div class="finder-label" style="margin-bottom:.4rem">Recently viewed</div>
-        <div id="friend-view-recent-chips" class="finder-recent-chips"></div>
-      </div>
+    <div id="friend-view-recent-section" style="margin-top:.8rem">
+      <div class="finder-label" style="margin-bottom:.4rem">Recently viewed</div>
+      <div id="friend-view-recent-chips" class="finder-recent-chips"></div>
     </div>
-
-    <div id="friend-result-stage" style="display:none">
-      <button class="text-link-btn" style="width:auto;margin:0;text-align:left" onclick="backToFriendSearch()">← Search someone else</button>
-
-      <div class="date-nav" style="margin-top:1rem">
-        <button class="nav-btn" onclick="changeFriendDay(-1)">← Prev</button>
-        <div class="date-display">
-          <div class="day-name" id="friend-view-day-name">—</div>
-          <div class="date-full" id="friend-view-date-full">—</div>
-        </div>
-        <button class="nav-btn" onclick="changeFriendDay(1)">Next →</button>
-      </div>
-
-      <div class="friend-name-banner" id="friend-name-banner">—</div>
-      <div class="slot-list" id="friend-view-slots"></div>
-    </div>
-
-    <div class="error-msg" id="friend-view-error"></div>
   </div>
+
+  <div id="friend-result-stage" style="display:none">
+    <button class="text-link-btn" style="width:auto;margin:0 0 1rem;text-align:left" onclick="backToFriendSearch()">← Search someone else</button>
+    <div class="friend-name-banner" id="friend-name-banner">—</div>
+
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="friend-term-search" placeholder="Search subject code, room…" oninput="renderFriendTerm()">
+    </div>
+    <select id="friend-term-subject-filter" class="term-subject-select" onchange="renderFriendTerm()">
+      <option value="">All subjects</option>
+    </select>
+    <div class="term-filter-row">
+      <button class="term-filter-btn" id="friend-term-filter-btn" onclick="toggleFriendTermExamFilter()">
+        <span class="dot dot-quiz"></span><span class="dot dot-exam"></span>Quiz &amp; exam days only
+      </button>
+      <button class="term-filter-btn" id="friend-term-clash-filter-btn" onclick="toggleFriendTermClashFilter()">
+        <span class="dot" style="background:var(--exam)"></span>Clash days only
+      </button>
+    </div>
+    <div id="friend-term-calendar"></div>
+  </div>
+
+  <div class="error-msg" id="friend-view-error"></div>
 </div>
 
 <script>
@@ -1443,6 +1435,18 @@ function getCourseName(cell) {
 function isQuiz(cell) { return cell && /^Q\d+[-]/i.test(cell); }
 function isExam(cell) { return cell && /^(ET[-]|MT[-])/i.test(cell); }
 
+// Extracts just the subject code a cell belongs to, handling quiz/exam
+// prefixes the same way userHasSubject() does. Used by the Full Term and
+// Friend tab "subject" dropdowns for exact, unambiguous filtering — unlike
+// free-text search, this can never accidentally match a different subject.
+function getSessionBaseCode(cell) {
+  if (!cell) return '';
+  const c = cell.trim();
+  const qm = c.match(/^(Q\d+[-]|ET[-]|MT[-])/i);
+  if (qm) return c.replace(/^(Q\d+[-]|ET[-]|MT[-])/i, '').split(/\s/)[0].toUpperCase();
+  return c.split(/\s+/)[0].toUpperCase();
+}
+
 // ─── GET USER SESSIONS FOR A DATE (with clash detection) ─────
 function getUserSessions(dateStr) {
   if (!TT) return [];
@@ -1586,8 +1590,21 @@ function getCurrentSlot() {
 }
 
 // ─── TERM VIEW ────────────────────────────────────────────────
+function ensureTermSubjectOptions() {
+  const sel = document.getElementById('term-subject-filter');
+  if (sel.dataset.populated) return;
+  const codes = [...new Set((currentUser.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
+  sel.innerHTML = '<option value="">All subjects</option>' + codes.map(code => {
+    const name = COURSE_NAMES[code];
+    return `<option value="${code}">${code}${name ? ' — ' + name : ''}</option>`;
+  }).join('');
+  sel.dataset.populated = '1';
+}
+
 function renderTerm() {
-  const q   = (document.getElementById('term-search').value||'').toLowerCase();
+  ensureTermSubjectOptions();
+  const q   = (document.getElementById('term-search').value||'').toLowerCase().trim();
+  const subjectFilter = document.getElementById('term-subject-filter').value; // '' = all
   const all = Object.keys(TT||{}).sort();
   const todayKey_ = dateKey(new Date());
   const months = {};
@@ -1602,10 +1619,20 @@ function renderTerm() {
       const sessions = getUserSessions(d);
       const filtered = sessions.filter(s => {
         if (termExamFilterOn && !(isQuiz(s.cell) || isExam(s.cell))) return false;
-        if (q && !(s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q) || getCourseName(s.cell).toLowerCase().includes(q))) return false;
+        if (termClashFilterOn && !s.isClash) return false;
+        // Exact subject match via the dropdown — unlike free text, this
+        // can never accidentally cross-match a different subject just
+        // because that subject's own full name happens to mention this one
+        // (e.g. "FAMA" = "Financial Aspects of M&A" mentions M&A by name).
+        if (subjectFilter && getSessionBaseCode(s.cell) !== subjectFilter) return false;
+        // Free text now only matches the raw code/cell text and room —
+        // deliberately NOT the descriptive course name, which is what
+        // caused FAMA/M&A-style cross-matches. Use the dropdown above to
+        // search by full subject name instead.
+        if (q && !(s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q))) return false;
         return true;
       });
-      if (filtered.length===0 && (q || termExamFilterOn)) continue;
+      if (filtered.length===0 && (q || termExamFilterOn || termClashFilterOn || subjectFilter)) continue;
 
       const dt = new Date(d+'T00:00:00');
       const isToday = d===todayKey_;
@@ -1667,6 +1694,14 @@ function toggleTermExamFilter() {
   renderTerm();
 }
 
+let termClashFilterOn = false;
+
+function toggleTermClashFilter() {
+  termClashFilterOn = !termClashFilterOn;
+  document.getElementById('term-clash-filter-btn').classList.toggle('active', termClashFilterOn);
+  renderTerm();
+}
+
 // ─── TABS ─────────────────────────────────────────────────────
 function switchTab(tab, el) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1674,8 +1709,15 @@ function switchTab(tab, el) {
   document.getElementById('tab-today').style.display  = tab==='today'?'block':'none';
   document.getElementById('tab-term').style.display   = tab==='term'?'block':'none';
   document.getElementById('tab-finder').style.display = tab==='finder'?'block':'none';
+  document.getElementById('tab-friend').style.display = tab==='friend'?'block':'none';
   if (tab==='term') renderTerm();
   if (tab==='finder') initFinderTab();
+  if (tab==='friend' && !friendViewData) {
+    document.getElementById('friend-view-error').style.display = 'none';
+    document.getElementById('friend-result-stage').style.display = 'none';
+    document.getElementById('friend-search-stage').style.display = 'block';
+    renderFriendViewRecent();
+  }
 }
 
 function dateKey(d) {
@@ -1884,12 +1926,13 @@ function renderFinder() {
 }
 
 // ─── VIEW A FRIEND'S SCHEDULE ───────────────────────────────────
-// Separate from the Scheduler tab's multi-person comparison — this shows
-// one friend's actual day, using the same slot-card look as Today. Calls
-// the token-gated getFriendSchedule action; never touches anything but
+// Lives in its own "Friends" tab (previously a modal overlay on Today).
+// Functions like the Full Term tab — full calendar, search, subject
+// dropdown, quiz/exam filter, clash filter — but scoped entirely to
+// whichever friend is selected instead of your own courses. Calls the
+// token-gated getFriendSchedule action; never touches anything but
 // schedule data for whoever's selected.
 let friendViewData = null;  // { name, roll, courses, schedule } from the last successful lookup
-let friendViewDate = null;  // this overlay's own date cursor — separate from the main Today tab's viewDate
 
 const LS_FRIEND_RECENT  = "t4_friend_recent_emails";
 const MAX_FRIEND_RECENT = 5;
@@ -1906,21 +1949,6 @@ function saveFriendRecentEmail(email) {
     recent = recent.slice(0, MAX_FRIEND_RECENT);
     localStorage.setItem(LS_FRIEND_RECENT, JSON.stringify(recent));
   } catch (e) { /* localStorage unavailable — fail silently */ }
-}
-
-function openFriendView() {
-  friendViewData = null;
-  document.getElementById('friend-view-error').style.display = 'none';
-  document.getElementById('friend-result-stage').style.display = 'none';
-  document.getElementById('friend-search-stage').style.display = 'block';
-  document.getElementById('friend-view-search-input').value = '';
-  document.getElementById('friend-view-search-results').innerHTML = '';
-  renderFriendViewRecent();
-  document.getElementById('friend-view-overlay').style.display = 'flex';
-}
-
-function closeFriendView() {
-  document.getElementById('friend-view-overlay').style.display = 'none';
 }
 
 function backToFriendSearch() {
@@ -1977,7 +2005,7 @@ async function selectFriendForView(email) {
   document.getElementById('friend-search-stage').style.display = 'none';
   document.getElementById('friend-result-stage').style.display = 'block';
   document.getElementById('friend-name-banner').textContent = 'Loading…';
-  document.getElementById('friend-view-slots').innerHTML = '';
+  document.getElementById('friend-term-calendar').innerHTML = '';
 
   try {
     const res = await postAction({
@@ -1997,9 +2025,21 @@ async function selectFriendForView(email) {
     }
 
     friendViewData = res;
-    friendViewDate = new Date(viewDate); // start on whichever day the Today tab is currently showing
     saveFriendRecentEmail(email);
-    renderFriendView();
+
+    // Reset this friend's own filters/search/dropdown every time a new
+    // person loads, so leftover filters from a previous friend don't
+    // silently hide everything for the new one.
+    document.getElementById('friend-term-search').value = '';
+    friendTermExamFilterOn = false;
+    friendTermClashFilterOn = false;
+    document.getElementById('friend-term-filter-btn').classList.remove('active');
+    document.getElementById('friend-term-clash-filter-btn').classList.remove('active');
+    const sel = document.getElementById('friend-term-subject-filter');
+    sel.dataset.populated = '';
+    sel.value = '';
+
+    renderFriendTerm();
   } catch (e) {
     document.getElementById('friend-result-stage').style.display = 'none';
     document.getElementById('friend-search-stage').style.display = 'block';
@@ -2013,16 +2053,47 @@ function showFriendViewError(msg) {
   el.style.display = 'block';
 }
 
-function changeFriendDay(n) {
-  friendViewDate = new Date(friendViewDate);
-  friendViewDate.setDate(friendViewDate.getDate() + n);
-  renderFriendView();
+// ─── FRIEND TERM VIEW ───────────────────────────────────────────
+// Mirrors the Full Term tab's renderTerm()/getUserSessions() almost
+// exactly, but reads from friendViewData.schedule (already filtered to
+// the friend's own courses server-side) instead of the global TT, and the
+// friend's own subject list instead of currentUser.courses. Does flag
+// clashes within the FRIEND's own schedule (two of their own courses
+// overlapping) — but deliberately skips the sister-section "report this
+// clash" suggestion, since that flow is about filing a clash report for
+// your own enrollment, which isn't something to surface for someone else.
+
+let friendTermExamFilterOn  = false;
+let friendTermClashFilterOn = false;
+
+function toggleFriendTermExamFilter() {
+  friendTermExamFilterOn = !friendTermExamFilterOn;
+  document.getElementById('friend-term-filter-btn').classList.toggle('active', friendTermExamFilterOn);
+  renderFriendTerm();
+}
+
+function toggleFriendTermClashFilter() {
+  friendTermClashFilterOn = !friendTermClashFilterOn;
+  document.getElementById('friend-term-clash-filter-btn').classList.toggle('active', friendTermClashFilterOn);
+  renderFriendTerm();
+}
+
+function ensureFriendTermSubjectOptions() {
+  const sel = document.getElementById('friend-term-subject-filter');
+  if (sel.dataset.populated) return;
+  const codes = [...new Set((friendViewData.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
+  sel.innerHTML = '<option value="">All subjects</option>' + codes.map(code => {
+    const name = COURSE_NAMES[code];
+    return `<option value="${code}">${code}${name ? ' — ' + name : ''}</option>`;
+  }).join('');
+  sel.dataset.populated = '1';
 }
 
 // Friend's schedule arrives already filtered to their own courses
-// server-side, so unlike getUserSessions() there's no course-matching to
-// redo here — just collect whatever cells exist for the day.
-function getFriendSessions(dateStr) {
+// server-side, so there's no course-matching to redo here — just collect
+// whatever cells exist for the day, then mark clashes within THEIR OWN
+// schedule the same way getUserSessions() does for yours.
+function getFriendSessionsForDay(dateStr) {
   if (!friendViewData) return [];
   const day = friendViewData.schedule[dateStr] || {};
   const results = [];
@@ -2035,58 +2106,93 @@ function getFriendSessions(dateStr) {
       const key = slot.key + '|' + cell;
       if (seen.has(key)) continue;
       seen.add(key);
-      results.push({ slot, room, cell });
+      results.push({ slot, room, cell, dateStr });
     }
   }
+
+  const slotCounts = {};
+  for (const r of results) slotCounts[r.slot.key] = (slotCounts[r.slot.key] || 0) + 1;
+  for (const r of results) r.isClash = slotCounts[r.slot.key] > 1;
+
   return results;
 }
 
-function renderFriendView() {
+function renderFriendTerm() {
   if (!friendViewData) return;
-
-  const key      = dateKey(friendViewDate);
-  const isToday  = dateKey(new Date()) === key;
-  const nowSlot  = getCurrentSlot();
-  const sessions = getFriendSessions(key);
+  ensureFriendTermSubjectOptions();
 
   document.getElementById('friend-name-banner').innerHTML =
     `${friendViewData.name} <span style="color:var(--ink-muted);font-weight:400">· ${friendViewData.roll}</span>`;
-  document.getElementById('friend-view-day-name').textContent = DAYS[friendViewDate.getDay()];
-  document.getElementById('friend-view-date-full').innerHTML =
-    friendViewDate.getDate() + ' ' + MONTHS[friendViewDate.getMonth()] + ' ' + friendViewDate.getFullYear() +
-    (isToday ? '<span class="today-badge">today</span>' : '');
 
-  const container = document.getElementById('friend-view-slots');
-  if (sessions.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for ${friendViewData.name.split(' ')[0]}'s courses</p></div>`;
-    return;
+  const q   = (document.getElementById('friend-term-search').value||'').toLowerCase().trim();
+  const subjectFilter = document.getElementById('friend-term-subject-filter').value;
+  const all = Object.keys(friendViewData.schedule||{}).sort();
+  const todayKey_ = dateKey(new Date());
+  const months = {};
+  for (const d of all) { const mo=d.substring(0,7); if(!months[mo])months[mo]=[]; months[mo].push(d); }
+
+  let html = '';
+  for (const [mo, dates] of Object.entries(months)) {
+    const moLabel = new Date(mo+'-01').toLocaleString('default',{month:'long',year:'numeric'});
+    html += `<div class="month-group"><div class="month-header">${moLabel}</div>`;
+
+    for (const d of dates) {
+      const sessions = getFriendSessionsForDay(d);
+      const filtered = sessions.filter(s => {
+        if (friendTermExamFilterOn && !(isQuiz(s.cell) || isExam(s.cell))) return false;
+        if (friendTermClashFilterOn && !s.isClash) return false;
+        if (subjectFilter && getSessionBaseCode(s.cell) !== subjectFilter) return false;
+        if (q && !(s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q))) return false;
+        return true;
+      });
+      if (filtered.length===0 && (q || friendTermExamFilterOn || friendTermClashFilterOn || subjectFilter)) continue;
+
+      const dt = new Date(d+'T00:00:00');
+      const isToday = d===todayKey_;
+      const qz = sessions.filter(s=>isQuiz(s.cell)).length;
+      const ex = sessions.filter(s=>isExam(s.cell)).length;
+      const cl = sessions.filter(s=>!isQuiz(s.cell)&&!isExam(s.cell)).length;
+
+      html += `<div class="calendar-day">
+        <div class="calendar-day-header ${isToday?'today-header':''}" onclick="toggleFriendDay('${d}')">
+          <div class="cal-date">
+            <div class="cal-date-num">${dt.getDate()}</div>
+            <div>
+              <div class="cal-date-day">${DAYS[dt.getDay()].substring(0,3)}${isToday?'<span class="today-badge">today</span>':''}</div>
+              <div class="cal-date-month">${MONTHS[dt.getMonth()]}</div>
+            </div>
+          </div>
+          <div class="cal-count">
+            ${cl>0?`<span class="dot"></span>${cl} class${cl!==1?'es':''}`:''} 
+            ${qz>0?`<span class="dot dot-quiz"></span>${qz} quiz`:''}
+            ${ex>0?`<span class="dot dot-exam"></span>${ex} exam`:''}
+            ${sessions.length===0?'<span style="color:var(--border)">—</span>':''}
+          </div>
+        </div>
+        <div class="calendar-day-body ${isToday?'open':''}" id="friend-day-${d}">`;
+
+      if (filtered.length===0) {
+        html += `<div style="font-size:12px;color:var(--ink-muted);padding:.5rem 0">No classes</div>`;
+      } else {
+        for (const s of filtered) {
+          const quiz=isQuiz(s.cell), exam=isExam(s.cell);
+          html += `<div class="cal-slot" style="${s.isClash ? 'background:var(--exam-wash);border-radius:6px;padding-left:6px' : ''}">
+            <div class="cal-slot-time">${s.slot.time}</div>
+            <div class="cal-slot-subj" style="color:${quiz?'var(--quiz)':exam?'var(--exam)':'var(--ink)'}">${s.cell}${s.isClash ? ' <span style="color:var(--exam);font-size:10px;font-weight:700">⚠ CLASH</span>' : ''}</div>
+            <div class="cal-slot-room">${s.room}</div>
+          </div>`;
+        }
+      }
+      html += `</div></div>`;
+    }
+    html += `</div>`;
   }
 
-  container.innerHTML = sessions.map(s => {
-    const quiz = isQuiz(s.cell), exam = isExam(s.cell);
-    const isCurrent = isToday && s.slot.key === nowSlot;
-    const fullName = getCourseName(s.cell);
-    let cls = 'slot-card';
-    if (quiz) cls += ' is-quiz';
-    else if (exam) cls += ' is-exam';
-    if (isCurrent) cls += ' is-now';
-
-    return `<div class="${cls}">
-      <div class="slot-time">${s.slot.time.replace('–','–<br>')}</div>
-      <div class="slot-main">
-        <div class="slot-subject">${s.cell}</div>
-        ${fullName ? `<div class="slot-subject-full">${fullName}</div>` : ''}
-        <div class="slot-meta">
-          <span class="badge badge-room">📍 ${s.room}</span>
-          <span class="badge badge-slot">${s.slot.label}</span>
-          ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
-          ${exam ? '<span class="badge badge-exam">End-term</span>' : ''}
-          ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  document.getElementById('friend-term-calendar').innerHTML = html || `<div class="empty-state"><div class="empty-icon">🔍</div><p>No results</p></div>`;
 }
+
+function toggleFriendDay(d) { document.getElementById('friend-day-'+d).classList.toggle('open'); }
+
 
 // ─── INIT ─────────────────────────────────────────────────────
 loadData();

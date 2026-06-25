@@ -1787,31 +1787,56 @@ async function loadMyAttendance() {
   if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
 }
 
-async function markAttendance(dateStr, slotKey, code, status, btnEl) {
+// Tapping a tile's Present/Absent twice deselects it back to unmarked.
+// The actual save goes through sendAttendanceWrite() rather than a plain
+// fetch — see its comment for why (a normal fetch gets killed by the
+// browser if you refresh right after tapping, which is exactly how marks
+// were getting lost).
+function markAttendance(dateStr, slotKey, code, status, btnEl) {
   const recKey = dateStr + '|' + slotKey + '|' + code;
   const prevStatus = myAttendance.records[recKey];
-  if (prevStatus === status) return; // already set to this — nothing to do
+  const isDeselect = prevStatus === status;
+  const newStatus = isDeselect ? null : status;
 
-  // Optimistic update so the tap feels instant; rolled back below if the
-  // server call fails.
-  myAttendance.records[recKey] = status;
+  // Optimistic update so the tap feels instant; rolled back below only if
+  // the fallback (non-beacon) path reports a real failure.
+  if (newStatus) myAttendance.records[recKey] = newStatus; else delete myAttendance.records[recKey];
   renderToday();
   updateAttendanceBanner();
   if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
 
-  try {
-    const res = await postAction({
-      action: 'markAttendance', email: currentUser.email, token: currentToken,
-      date: dateStr, slotKey: slotKey, courseCode: code, status: status,
-    });
-    if (!res.success) throw new Error(res.error || 'failed');
-  } catch (e) {
-    if (prevStatus) myAttendance.records[recKey] = prevStatus; else delete myAttendance.records[recKey];
-    renderToday();
-    updateAttendanceBanner();
-    if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
-    showToast("Couldn't save that — check your connection and try again.", true);
+  sendAttendanceWrite(
+    { action: 'markAttendance', email: currentUser.email, token: currentToken,
+      date: dateStr, slotKey: slotKey, courseCode: code, status: isDeselect ? 'clear' : status },
+    () => {
+      // Rollback — only reachable via the fallback fetch path below.
+      if (prevStatus) myAttendance.records[recKey] = prevStatus; else delete myAttendance.records[recKey];
+      renderToday();
+      updateAttendanceBanner();
+      if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
+      showToast("Couldn't save that — check your connection and try again.", true);
+    }
+  );
+}
+
+// navigator.sendBeacon is the standard browser API for "this request must
+// survive even if the page navigates away a moment later" — a normal
+// fetch() gets aborted mid-flight on refresh/close, which is exactly what
+// was silently losing attendance marks before. Once sendBeacon hands a
+// request to the browser, delivery is guaranteed even past page unload.
+// Its tradeoff: no response to read, so failures can't be detected or
+// rolled back on that path — acceptable here, since the alternative was
+// outright data loss. Only falls back to an awaited fetch (with proper
+// rollback) if sendBeacon itself isn't available or refuses to queue.
+function sendAttendanceWrite(payload, onFailure) {
+  if (navigator.sendBeacon) {
+    const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain;charset=utf-8' });
+    const queued = navigator.sendBeacon(WEBAPP_URL, blob);
+    if (queued) return;
   }
+  postAction(payload).then(res => {
+    if (!res.success) onFailure();
+  }).catch(() => onFailure());
 }
 
 // Dismissible, not blocking: closing it hides it for the rest of this

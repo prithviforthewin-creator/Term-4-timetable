@@ -152,7 +152,7 @@
   .input-group label{font-size:11.5px;color:var(--ink-faint);letter-spacing:.06em;text-transform:uppercase;font-weight:600}
   .input-group input{
     background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
-    padding:.8rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:14.5px;outline:none;
+    padding:.8rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:16px;outline:none;
     transition:border-color .15s;width:100%;
   }
   .input-group input::placeholder{color:var(--ink-faint)}
@@ -220,10 +220,11 @@
   }
   .tab{
     padding:.85rem 1.1rem;font-size:13.5px;color:var(--ink-muted);border-bottom:2px solid transparent;
-    cursor:pointer;transition:color .15s;user-select:none;white-space:nowrap;font-weight:500;
+    cursor:pointer;transition:color .15s, opacity .08s, transform .08s;user-select:none;white-space:nowrap;font-weight:500;
   }
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
   .tab:hover:not(.active){color:var(--ink)}
+  .tab:active{opacity:.55;transform:scale(.96)}
   .content{padding:1.75rem 1.5rem;max-width:860px;margin:0 auto}
 
   /* ════════════════════════════════════════════════════════════
@@ -359,18 +360,19 @@
   .search-bar{position:relative;margin-bottom:1.1rem}
   .search-bar input{
     width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-    padding:.75rem 1rem .75rem 2.6rem;color:var(--ink);font-family:var(--font-body);font-size:13.5px;outline:none;
+    padding:.75rem 1rem .75rem 2.6rem;color:var(--ink);font-family:var(--font-body);font-size:16px;outline:none;
     transition:border-color .15s;
   }
   .search-bar input::placeholder{color:var(--ink-faint)}
   .search-bar input:focus{border-color:var(--accent)}
   .term-filter-btn{display:inline-flex;align-items:center;gap:7px;padding:.5rem .9rem;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--ink-muted);font-family:var(--font-body);font-size:12.5px;font-weight:500;cursor:pointer;transition:.15s}
   .term-filter-btn:hover{border-color:var(--quiz)}
+  .term-filter-btn:active{transform:scale(.95)}
   .term-filter-btn.active{background:var(--quiz-wash);color:var(--quiz);border-color:var(--quiz);font-weight:600}
   .term-filter-row{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.1rem}
   .term-subject-select{
     width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-    padding:.7rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:13.5px;outline:none;
+    padding:.7rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:16px;outline:none;
     margin-bottom:.7rem;cursor:pointer;transition:border-color .15s;
   }
   .term-subject-select:focus{border-color:var(--accent)}
@@ -379,7 +381,7 @@
   .jump-to-date-row{margin-bottom:.85rem}
   .jump-to-date-row input[type="date"]{
     width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-    padding:.65rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:13.5px;outline:none;
+    padding:.65rem 1rem;color:var(--ink);font-family:var(--font-body);font-size:16px;outline:none;
     cursor:pointer;transition:border-color .15s;
   }
   .jump-to-date-row input[type="date"]:focus{border-color:var(--accent)}
@@ -398,7 +400,7 @@
   .finder-label{font-size:11.5px;color:var(--ink-faint);letter-spacing:.04em;text-transform:uppercase;font-weight:600;display:block;margin-bottom:.55rem}
   .finder-date-row input[type="date"]{
     background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
-    padding:.7rem .9rem;color:var(--ink);font-family:var(--font-body);font-size:14px;outline:none;width:100%;
+    padding:.7rem .9rem;color:var(--ink);font-family:var(--font-body);font-size:16px;outline:none;width:100%;
   }
   [data-theme="dark"] .finder-date-row input[type="date"]{color-scheme:dark}
   [data-theme="light"] .finder-date-row input[type="date"]{color-scheme:light}
@@ -857,6 +859,12 @@ let COURSE_BUFFERS = {};
 let myAttendance = { records: {} }; // "date|slotKey|CODE" -> "present" | "absent"
 let attendanceBannerDismissed = false; // resets every page load — by design, see updateAttendanceBanner()
 
+// Bumped any time TT/STUDENTS/COURSE_BUFFERS or myAttendance.records actually
+// change. Full Term and Attendance use this to skip re-drawing themselves
+// from scratch on every tab switch when nothing they depend on has moved —
+// previously they rebuilt unconditionally on every single tap.
+let dataVersion = 0;
+
 // Term-4 runs June 15 – Sep 8, 2026. If the real "today" falls outside this
 // window (e.g. testing before/after the term), clamp to the nearest term date
 // instead of showing a date with no data.
@@ -892,6 +900,7 @@ const CACHE_KEY_STU = 'iimT4_cache_students';
 const CACHE_KEY_CB  = 'iimT4_cache_coursebuffers';
 
 function setData(tt, stu, buffers) {
+  dataVersion++;
   TT       = tt;
   STUDENTS = stu;
   COURSE_BUFFERS = buffers || {};
@@ -1810,6 +1819,7 @@ async function loadMyAttendance() {
   } catch (e) {
     console.warn('Could not load attendance records:', e.message);
   }
+  dataVersion++;
   renderToday();
   updateAttendanceBanner();
   if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
@@ -1832,6 +1842,7 @@ function markAttendance(dateStr, slotKey, code, status, btnEl) {
   // on every single tap was the main source of visible jank on mobile.
   // Toggling just these two buttons' classes is enough.
   if (newStatus) myAttendance.records[recKey] = newStatus; else delete myAttendance.records[recKey];
+  dataVersion++;
   setAttendButtonVisual(btnEl, newStatus);
   updateAttendanceBanner();
   if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
@@ -1842,6 +1853,7 @@ function markAttendance(dateStr, slotKey, code, status, btnEl) {
     () => {
       // Rollback — only reachable via the fallback fetch path below.
       if (prevStatus) myAttendance.records[recKey] = prevStatus; else delete myAttendance.records[recKey];
+      dataVersion++;
       setAttendButtonVisual(btnEl, prevStatus);
       updateAttendanceBanner();
       if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
@@ -1923,6 +1935,12 @@ function goToEarliestUnmarked() {
   switchTab('today', document.getElementById('tabbtn-today'));
 }
 
+// Render-cache trackers — see dataVersion above. lastTermRenderSig also
+// folds in the search box, dropdown, and filter states since those can
+// change the Full Term view without TT itself changing.
+let lastAttendanceRenderVersion = -1;
+let lastTermRenderSig = null;
+
 function ensureCourseDisplayName(code) {
   const name = COURSE_NAMES[code];
   return name ? `${code} — ${name}` : code;
@@ -1931,6 +1949,12 @@ function ensureCourseDisplayName(code) {
 function renderAttendanceTracker() {
   const container = document.getElementById('attendance-tracker-list');
   if (!currentUser) { container.innerHTML = ''; return; }
+
+  // Re-opening this tab used to rebuild every course card from scratch
+  // every single time, even with no new marks since the last visit.
+  // Only redo the work if the underlying attendance data actually moved.
+  if (dataVersion === lastAttendanceRenderVersion) return;
+  lastAttendanceRenderVersion = dataVersion;
 
   const codes = [...new Set((currentUser.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
   if (codes.length === 0) {
@@ -2003,8 +2027,17 @@ function renderTerm() {
   ensureTermSubjectOptions();
   const q   = (document.getElementById('term-search').value||'').toLowerCase().trim();
   const subjectFilter = document.getElementById('term-subject-filter').value; // '' = all
-  const all = Object.keys(TT||{}).sort();
   const todayKey_ = dateKey(new Date());
+
+  // This used to rebuild the entire ~3-month calendar — looping every day,
+  // every room, every slot — on every single tab switch, even if you just
+  // tapped away and back with no search/filter/date change in between.
+  // Skip the rebuild when none of that has actually moved.
+  const renderSig = `${dataVersion}|${q}|${subjectFilter}|${termExamFilterOn}|${termClashFilterOn}|${todayKey_}`;
+  if (renderSig === lastTermRenderSig) return;
+  lastTermRenderSig = renderSig;
+
+  const all = Object.keys(TT||{}).sort();
   const months = {};
   for (const d of all) { const mo=d.substring(0,7); if(!months[mo])months[mo]=[]; months[mo].push(d); }
 
@@ -2123,7 +2156,18 @@ function jumpTermToDate(dateStr) {
   if (!el) { showToast("That date isn't in the loaded calendar."); return; }
   const body = document.getElementById('day-' + dateStr);
   if (body && !body.classList.contains('open')) body.classList.add('open');
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // .topbar is position:sticky;top:0 — a plain scrollIntoView({block:'start'})
+  // lines the target's top edge up with the very top of the page, which is
+  // exactly where the sticky bar sits, so it covers the top of the card you
+  // just jumped to (the bit with the date number) while the day below it
+  // shows in full. Scroll to an offset that clears the sticky bar instead,
+  // measured live so it stays correct even if the topbar's height changes.
+  const topbar = document.querySelector('.topbar');
+  const clearance = (topbar ? topbar.offsetHeight : 0) + 14;
+  const targetY = el.getBoundingClientRect().top + window.scrollY - clearance;
+  window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+
   el.classList.remove('jump-landing');
   void el.offsetWidth; // restart the animation even if jumping to the same day twice in a row
   el.classList.add('jump-landing');

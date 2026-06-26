@@ -1491,20 +1491,40 @@ function handleLogin() {
   document.getElementById('kicked-msg').style.display = 'none';
   const raw = document.getElementById('login-input').value.trim().toLowerCase();
   let email = null;
+  let errorText = 'No student found. Try your full IIM email or roll number.';
+
+  // raw being empty used to fall straight into the substring-fallback loop
+  // below — and every string "includes('')", so it silently matched
+  // whichever student happened to be first in STUDENTS and logged in (or
+  // sent them a verification email) as that real person instead of erroring.
+  if (!raw) {
+    document.getElementById('error-msg').textContent = errorText;
+    document.getElementById('error-msg').style.display = 'block';
+    return;
+  }
 
   if (STUDENTS[raw]) {
     email = raw;
   } else if (ROLL_IDX[raw]) {
     email = ROLL_IDX[raw];
-  } else {
-    for (const e of Object.keys(STUDENTS)) {
-      if (e.toLowerCase().includes(raw) || STUDENTS[e].name.toLowerCase().includes(raw)) {
-        email = e; break;
-      }
+  } else if (raw.length >= 4) {
+    // Partial name/email search — only resolves when EXACTLY ONE student
+    // matches. A short or shared fragment (e.g. "iimidr.ac.in" matches
+    // every email's domain; two students can share part of a name) used
+    // to silently pick whichever happened to come first instead of
+    // refusing to guess between real people.
+    const matches = Object.keys(STUDENTS).filter(e =>
+      e.includes(raw) || STUDENTS[e].name.toLowerCase().includes(raw)
+    );
+    if (matches.length === 1) {
+      email = matches[0];
+    } else if (matches.length > 1) {
+      errorText = 'Multiple matches — try your full email or roll number.';
     }
   }
 
   if (!email) {
+    document.getElementById('error-msg').textContent = errorText;
     document.getElementById('error-msg').style.display = 'block';
     return;
   }

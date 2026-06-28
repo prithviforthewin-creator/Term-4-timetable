@@ -1630,6 +1630,10 @@ function getCourseName(cell) {
 
 function isQuiz(cell) { return cell && /^Q\d+[-]/i.test(cell); }
 function isExam(cell) { return cell && /^(ET[-]|MT[-])/i.test(cell); }
+// isExam() buckets both MT- and ET- codes as "exam" for color/filter purposes,
+// but they're not the same thing — this picks the right badge text for each
+// rather than hardcoding "End-term" for both.
+function examLabel(cell) { return cell && /^MT[-]/i.test(cell) ? 'Mid-term' : 'End-term'; }
 
 // Extracts just the subject code a cell belongs to, handling quiz/exam
 // prefixes the same way userHasSubject() does. Used by the Full Term and
@@ -1778,7 +1782,7 @@ function renderToday() {
           <span class="badge badge-room">📍 ${s.room}</span>
           <span class="badge badge-slot">${s.slot.label}</span>
           ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
-          ${exam ? '<span class="badge badge-exam">End-term</span>' : ''}
+          ${exam ? `<span class="badge badge-exam">${examLabel(s.cell)}</span>` : ''}
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
           ${s.isClash ? '<span class="badge badge-clash">⚠ Clash</span>' : ''}
         </div>
@@ -2596,7 +2600,7 @@ function renderFriendView() {
           <span class="badge badge-room">📍 ${s.room}</span>
           <span class="badge badge-slot">${s.slot.label}</span>
           ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
-          ${exam ? '<span class="badge badge-exam">End-term</span>' : ''}
+          ${exam ? `<span class="badge badge-exam">${examLabel(s.cell)}</span>` : ''}
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
         </div>
       </div>

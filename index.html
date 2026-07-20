@@ -1324,19 +1324,25 @@ async function tryAutoLogin() {
   const token = lastEmail ? getStoredToken(lastEmail) : null;
 
   if (lastEmail && STUDENTS[lastEmail] && token) {
-    try {
-      const res = await postAction({ action: 'checkToken', email: lastEmail, token });
-      if (res.success && res.valid) {
-        loginAs(lastEmail);
-        return;
-      }
-      clearStoredToken(lastEmail); // server says this token's dead — don't keep trying it
-    } catch (e) {
-      // Network hiccup on the check itself — don't lock someone out of data
-      // they already have cached just because one verification call failed.
-      loginAs(lastEmail);
-      return;
-    }
+    // OPTIMISTIC: show the app NOW from cached data, verify the token in
+    // the background. This used to await the round trip before rendering
+    // anything, so a busy backend held a fully-loaded screen hostage —
+    // that wait was the "20 second open", not the data fetch.
+    // Nothing is exposed by rendering first: the token is already on this
+    // device, and every write action is independently token-gated
+    // server-side. A dead token still signs the person out a moment later.
+    loginAs(lastEmail);
+
+    postAction({ action: 'checkToken', email: lastEmail, token })
+      .then(res => {
+        if (res && res.success && !res.valid) forceSignOutElsewhere();
+      })
+      .catch(e => {
+        // Network hiccup on the check itself — don't lock someone out of
+        // data they already have cached. The session watch will retry.
+      });
+
+    return;
   }
 
   document.getElementById('login-screen').style.display = 'flex';
@@ -1355,12 +1361,20 @@ async function tryAutoLogin() {
 // regardless, since those aren't spam-prone the way taps are.
 let sessionCheckInterval = null;
 let lastSessionCheckAt   = 0;
-const SESSION_CHECK_INTERVAL_MS = 20 * 1000; // 20 seconds
-const SESSION_CHECK_MIN_GAP_MS  = 8 * 1000;  // floor between tap-triggered checks
+// Was 20s / 8s. At batch scale that meant roughly 25 token checks per
+// SECOND hitting one Apps Script project, which saturated it and made
+// every other request queue behind them. Detecting a rival login within
+// five minutes instead of twenty seconds costs nothing here.
+const SESSION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const SESSION_CHECK_MIN_GAP_MS  = 2 * 60 * 1000; // floor between tap-triggered checks
 
 function startSessionWatch() {
   stopSessionWatch();
-  sessionCheckInterval = setInterval(checkSessionStillValid, SESSION_CHECK_INTERVAL_MS);
+  // Jitter — without it, a few hundred phones opened at 8:55am before
+  // class lock into synchronised waves and keep hitting the backend in
+  // the same second forever after.
+  const jitter = Math.floor(Math.random() * 60 * 1000);
+  sessionCheckInterval = setInterval(checkSessionStillValid, SESSION_CHECK_INTERVAL_MS + jitter);
   document.addEventListener('visibilitychange', onVisibilityCheckSession);
   document.addEventListener('click', onTapCheckSession);
 }
@@ -1401,11 +1415,12 @@ async function checkSessionStillValid() {
 // actually changed — same shape as the session watch above, just for
 // schedule data instead of login validity.
 let dataRefreshInterval = null;
-const DATA_REFRESH_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
+const DATA_REFRESH_INTERVAL_MS = 10 * 60 * 1000; // was 3 minutes — the hourly change-detector already force-clears the server cache the moment a real edit lands, so polling faster than this bought nothing
 
 function startDataRefreshWatch() {
   stopDataRefreshWatch();
-  dataRefreshInterval = setInterval(refreshDataInBackground, DATA_REFRESH_INTERVAL_MS);
+  const jitter = Math.floor(Math.random() * 90 * 1000); // same de-synchronising reason as startSessionWatch
+  dataRefreshInterval = setInterval(refreshDataInBackground, DATA_REFRESH_INTERVAL_MS + jitter);
   document.addEventListener('visibilitychange', onVisibilityRefreshData);
 }
 

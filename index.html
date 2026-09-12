@@ -48,6 +48,9 @@
     --free:#4f8a6f;
     --free-wash:#16291f;
 
+    --gold:#c9a227;            /* trek-week accent — distinct from the amber quiz color */
+    --gold-wash:#2b2410;
+
     --radius-sm:6px;
     --radius:10px;
     --radius-lg:16px;
@@ -85,6 +88,9 @@
     --exam-wash:#f4ded8;
     --free:#2f6e4f;
     --free-wash:#e1ecdf;
+
+    --gold:#93721a;
+    --gold-wash:#f4ecd2;
 
     --shadow-card:0 1px 2px rgba(40,35,20,.08);
     --shadow-pop:0 14px 32px rgba(40,35,20,.14);
@@ -186,13 +192,25 @@
   .topbar{
     background:var(--surface);border-bottom:1px solid var(--border);padding:1rem 1.5rem;
     display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;
+    border-top:3px solid transparent;transition:border-top-color .3s ease;
   }
   .topbar-left{display:flex;align-items:center;gap:1rem}
   .topbar-brand{
     font-family:var(--font-mono);font-size:11px;letter-spacing:.16em;color:var(--accent);
-    text-transform:uppercase;display:flex;align-items:center;gap:.45rem;
+    text-transform:uppercase;display:flex;align-items:center;gap:.45rem;transition:color .3s ease;
   }
-  .topbar-brand::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%}
+  .topbar-brand::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;transition:background-color .3s ease}
+
+  /* Trek week — a restrained gold accent, on only while the logged-in
+     student is a HOP subscriber AND currently viewing a date inside the
+     trek window. Deliberately does NOT extend to the VHMF/ELDM
+     field-visit path, which stays in its plain informational styling. */
+  body.trek-mode .topbar{border-top-color:var(--gold)}
+  body.trek-mode .topbar-brand{color:var(--gold)}
+  body.trek-mode .topbar-brand::before{background:var(--gold)}
+  body.trek-mode #tab-today{
+    background:linear-gradient(180deg, var(--gold-wash), transparent 260px);
+  }
   .user-pill{
     background:var(--surface-2);border:1px solid var(--border);border-radius:20px;
     padding:.35rem .85rem;font-size:12px;color:var(--ink-muted);font-family:var(--font-body);
@@ -581,6 +599,26 @@
   .block-note{font-size:11.5px;color:var(--ink-muted);margin-top:.6rem;line-height:1.45}
   .block-locked-note{font-size:11.5px;color:var(--ink-faint);margin-top:.6rem;font-family:var(--font-mono)}
   .block-attend-row{display:flex;gap:.5rem;margin-top:.7rem}
+  /* Informational-only variant (VHMF/ELDM field-visit notices) — dashed
+     border signals "heads up", not "tap to act on", since there's no
+     attendance button here. */
+  .block-card.is-info{border-style:dashed}
+
+  /* Playful landing cue for the trek/field-visit window — plays each time
+     the card(s) render, e.g. every Prev/Next step through that stretch of
+     the calendar. Uses only existing tokens, no new hex. */
+  @keyframes trekBannerIn{
+    0%{opacity:0;transform:translateY(-8px) scale(.96)}
+    60%{opacity:1;transform:translateY(2px) scale(1.02)}
+    100%{opacity:1;transform:translateY(0) scale(1)}
+  }
+  .trek-banner{
+    background:var(--accent-wash);color:var(--accent-strong);border:1px solid var(--accent);
+    border-radius:var(--radius);padding:.65rem 1rem;margin-bottom:.75rem;font-weight:600;
+    font-size:13px;text-align:center;letter-spacing:.01em;
+    animation:trekBannerIn .5s cubic-bezier(.34,1.56,.64,1);
+  }
+  @media (prefers-reduced-motion: reduce){ .trek-banner{animation:none} }
 
   @media(max-width:600px){
     .content{padding:1.25rem 1rem}
@@ -960,25 +998,30 @@ function computeUserTermEnd() {
   let latest = new Date(TERM_START); // never earlier than term start
 
   if (TT && currentUser) {
+    const myFieldVisitCodes = getUserBlockCourses().filter(c => c !== 'HOP');
     for (const dateStr of Object.keys(TT)) {
-      // Only count days where THIS user actually has something.
-      if (getUserSessions(dateStr).length === 0) continue;
+      // A day counts if the user has a regular session on it, OR — since
+      // getUserSessions() now excludes block/field-visit rows entirely —
+      // if it's a day the grid lists one of their own VHMF/ELDM field
+      // visits. Without that second check, a field-visit day that falls
+      // after every other date on the calendar would be unreachable.
+      const hasRegular = getUserSessions(dateStr).length > 0;
+      const hasFieldVisit = myFieldVisitCodes.some(code => !!getFieldVisitSessionForDate(code, dateStr));
+      if (!hasRegular && !hasFieldVisit) continue;
       const d = new Date(dateStr + 'T00:00:00');
       if (d > latest) latest = d;
     }
   }
 
-  // Block courses have no grid rows, so their end date has to be folded in
+  // HOP has a fixed date range (unlike VHMF/ELDM, which are handled purely
+  // from real grid data above), so its end date has to be folded in
   // explicitly — otherwise a HOP student's range would stop at their last
   // regular class and they could never reach the trek week.
   if (currentUser) {
     const myCodes = new Set((currentUser.courses || [])
       .map(c => c.replace(/-([A-Z])$/i, '').toUpperCase()));
-    for (const code of BLOCK_COURSES) {
-      if (!myCodes.has(code)) continue;
-      const win = BLOCK_WINDOWS[code];
-      if (!win || !win.end) continue;
-      const endD = new Date(win.end + 'T00:00:00');
+    if (myCodes.has('HOP') && BLOCK_WINDOWS['HOP'] && BLOCK_WINDOWS['HOP'].end) {
+      const endD = new Date(BLOCK_WINDOWS['HOP'].end + 'T00:00:00');
       if (endD > latest) latest = endD;
     }
   }
@@ -1620,6 +1663,7 @@ function forceSignOutElsewhere() {
   currentUser  = null;
   currentToken = null;
   clearSessionMemory();
+  document.body.classList.remove('trek-mode');
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-input').value = '';
@@ -1744,6 +1788,7 @@ function handleLogout() {
   myAttendance = { records: {} };
   attendanceBannerDismissed = false;
   userTermEnd = null;
+  document.body.classList.remove('trek-mode');
   document.getElementById('attendance-banner').style.display = 'none';
   clearSessionMemory();
   document.getElementById('login-screen').style.display = 'flex';
@@ -1843,6 +1888,31 @@ function canMarkBlock(code) {
   return dateKey(new Date()) >= win.markFrom;
 }
 
+// VHMF/ELDM have no known date range (unlike HOP, which has a fixed
+// BLOCK_WINDOWS entry) — so instead of guessing a window, this looks
+// directly at the real timetable: does the grid mention this course code
+// on this specific date, in any room/slot? If so, that's a genuine
+// field-visit day for that course; if not, there's nothing to show.
+//
+// Checks for the code as a whole word ANYWHERE in the cell, not just the
+// first token — a real T-5 cell reads "HOP / VHMF Course's field visit
+// (Udaipur)", i.e. one shared descriptive row for two different block
+// courses' students. Matching only the first word ("HOP") would silently
+// leave VHMF subscribers with nothing on that exact day.
+// Returns the matching {cell, room, slot} or null.
+function getFieldVisitSessionForDate(code, dateStr) {
+  const day = TT[dateStr];
+  if (!day) return null;
+  const re = new RegExp('\\b' + code + '\\b', 'i');
+  for (const slot of SLOTS) {
+    for (const [room, slots] of Object.entries(day)) {
+      const cell = slots[slot.key];
+      if (cell && re.test(cell)) return { cell, room, slot };
+    }
+  }
+  return null;
+}
+
 // ─── GET USER SESSIONS FOR A DATE (with clash detection) ─────
 function getUserSessions(dateStr) {
   if (!TT) return [];
@@ -1855,6 +1925,15 @@ function getUserSessions(dateStr) {
       const cell = slots[slot.key];
       if (!cell) continue;
       if (!userHasSubject(cell)) continue;
+      // Block/field-visit courses (HOP, VHMF, ELDM) never render as a
+      // regular timed class, no matter what the grid cell happens to say
+      // — they're surfaced separately by renderTodayBlockCards() instead
+      // (a persistent card for HOP; a no-time "field visit" notice for
+      // VHMF/ELDM on days the grid actually lists them). Without this,
+      // a cell like "HOP / VHMF Course's field visit (Udaipur)" shows up
+      // twice — once here with a fabricated 9:00am slot, once as the
+      // real block card — and the slot time it picks up isn't real.
+      if (BLOCK_COURSES.includes(getSessionBaseCode(cell))) continue;
       const key = slot.key + '|' + cell;
       if (seen.has(key)) continue;
       seen.add(key);
@@ -1942,6 +2021,16 @@ function updateTodayNavButtons() {
 // shows (block courses have no normal sessions). Present/Absent here
 // writes through markBlockAttendance; before markFrom the buttons are
 // greyed with an "opens" note (server rejects early marks regardless).
+// HOP has an actual attendance mechanic (one present/absent mark for the
+// whole trek), so it keeps its persistent card across the fixed 24 Oct –
+// 1 Nov window regardless of what any single day's grid cell says. VHMF/
+// ELDM have no attendance mechanic wired up yet (no confirmed dates), so
+// they're purely informational — surfaced only on the specific days the
+// real timetable happens to mention them, with no fabricated time.
+//
+// HOP takes priority: a HOP subscriber only ever sees the HOP card, never
+// a VHMF/ELDM field-visit notice too — the two are mutually exclusive in
+// practice (trek vs. field visit during the same block week).
 function renderTodayBlockCards() {
   const host = document.getElementById('today-block-cards');
   if (!host) return;
@@ -1953,33 +2042,68 @@ function renderTodayBlockCards() {
   if (myBlocks.length === 0) return;
 
   let html = '';
+
+  if (myBlocks.includes('HOP')) {
+    const win = BLOCK_WINDOWS['HOP'];
+    if (win && isDateInBlockWindow('HOP', key)) {
+      const marked   = myAttendance.records['BLOCK|HOP'];
+      const markable = canMarkBlock('HOP');
+      const fullName = COURSE_NAMES['HOP'] || '';
+      const dis      = markable ? '' : 'disabled';
+
+      html = `<div class="trek-banner">🎉 Welcome to the best part of Term 5 — trek week!</div>
+      <div class="block-card ${markable ? '' : 'is-locked'}">
+        <div class="block-card-top">
+          <div class="block-card-name">HOP <span class="block-badge">block course</span></div>
+          <div class="block-card-dates">🏔 ${win.label}</div>
+        </div>
+        ${fullName ? `<div class="block-card-fullname">${fullName}</div>` : ''}
+        <div class="block-attend-row attend-row">
+          <button class="attend-btn attend-present ${marked==='present'?'active':''}" ${dis} onclick="markBlockAttendance('HOP','present',this)">✓ Present</button>
+          <button class="attend-btn attend-absent ${marked==='absent'?'active':''}" ${dis} onclick="markBlockAttendance('HOP','absent',this)">✕ Absent</button>
+        </div>
+        ${markable
+          ? `<div class="block-note">${win.blurb} · one present/absent mark for the whole block · no buffer.</div>`
+          : `<div class="block-locked-note">Marking opens ${win.label.split('–')[0].trim()} (${win.markFrom}).</div>`}
+      </div>`;
+    }
+    host.innerHTML = html;
+    return;
+  }
+
+  // Not a HOP subscriber — show ONLY the field-visit course(s) they're
+  // actually subscribed to, and only on days the real grid lists
+  // something for it. No assumed date range: if the sheet has nothing
+  // for this course today, nothing shows — same as any other free day.
   for (const code of myBlocks) {
-    const win = BLOCK_WINDOWS[code];
-    if (!win) continue;                       // no window defined (e.g. VHMF/ELDM this term) — nothing to show
-    if (!isDateInBlockWindow(code, key)) continue; // only during the trek week itself
-
-    const marked   = myAttendance.records['BLOCK|' + code];
-    const markable = canMarkBlock(code);
+    const session = getFieldVisitSessionForDate(code, key);
+    if (!session) continue;
     const fullName = COURSE_NAMES[code] || '';
-    const dis      = markable ? '' : 'disabled';
-
-    html += `<div class="block-card ${markable ? '' : 'is-locked'}">
+    html += `<div class="trek-banner">🎉 Welcome to the best part of Term 5 — field visit day!</div>
+    <div class="block-card is-info">
       <div class="block-card-top">
-        <div class="block-card-name">${code} <span class="block-badge">block course</span></div>
-        <div class="block-card-dates">🏔 ${win.label}</div>
+        <div class="block-card-name">${code} <span class="block-badge">field visit</span></div>
       </div>
       ${fullName ? `<div class="block-card-fullname">${fullName}</div>` : ''}
-      <div class="block-attend-row attend-row">
-        <button class="attend-btn attend-present ${marked==='present'?'active':''}" ${dis} onclick="markBlockAttendance('${code}','present',this)">✓ Present</button>
-        <button class="attend-btn attend-absent ${marked==='absent'?'active':''}" ${dis} onclick="markBlockAttendance('${code}','absent',this)">✕ Absent</button>
-      </div>
-      ${markable
-        ? `<div class="block-note">${win.blurb} · one present/absent mark for the whole block · no buffer.</div>`
-        : `<div class="block-locked-note">Marking opens ${win.label.split('–')[0].trim()} (${win.markFrom}).</div>`}
+      <div class="block-note">${session.cell} · 📍 ${session.room}</div>
+      <div class="block-locked-note">No fixed time listed — this isn't a regular class slot.</div>
     </div>`;
   }
 
   host.innerHTML = html;
+}
+
+// True only when the logged-in student has taken HOP AND the day
+// currently shown on the Today tab falls inside the trek window. Drives
+// the restrained gold treatment (topbar accent + Today-tab tint) — this
+// deliberately never fires for the VHMF/ELDM field-visit path, which
+// stays in its plain "informational" card styling.
+function isTrekWeekActive() {
+  if (!currentUser) return false;
+  const myCodes = new Set((currentUser.courses || [])
+    .map(c => c.replace(/-([A-Z])$/i, '').toUpperCase()));
+  if (!myCodes.has('HOP')) return false;
+  return isDateInBlockWindow('HOP', dateKey(viewDate));
 }
 
 function renderToday() {
@@ -1994,6 +2118,7 @@ function renderToday() {
 
   updateTodayNavButtons();
   renderTodayBlockCards();
+  document.body.classList.toggle('trek-mode', isTrekWeekActive());
 
   const quizzes = sessions.filter(s => isQuiz(s.cell));
   const exams   = sessions.filter(s => isExam(s.cell));

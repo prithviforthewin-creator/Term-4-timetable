@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IIM Indore · Term 4 Schedule</title>
+<title>IIM Indore · Term 5 Schedule</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2f6e4f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="T4 Timetable">
+<meta name="apple-mobile-web-app-title" content="T5 Timetable">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
@@ -240,6 +240,8 @@
     transition:all .15s;
   }
   .nav-btn:hover{color:var(--ink);border-color:var(--border-strong)}
+  .nav-btn:disabled{opacity:.35;cursor:not-allowed}
+  .nav-btn:disabled:hover{color:var(--ink-muted);border-color:var(--border)}
 
   /* ════════════════════════════════════════════════════════════
      STATS
@@ -554,6 +556,32 @@
   .attendance-card-stats b{color:var(--ink);font-weight:700}
   .attendance-card-unmarked{margin-top:.5rem;font-size:11.5px;color:var(--quiz);font-weight:500}
 
+  /* ════════════════════════════════════════════════════════════
+     HOP / BLOCK COURSE (zero-session) — trek card on Today + status
+     card in Attendance. No buffer bar: it's one present/absent mark
+     for the whole block, styled to read as distinct from per-session
+     class cards. Uses the same tokens as everything else — no new hex.
+  ════════════════════════════════════════════════════════════ */
+  .block-card{
+    background:var(--surface);border:1px solid var(--accent);border-left:3px solid var(--accent);
+    border-radius:var(--radius);padding:1.15rem 1.25rem;margin-bottom:.75rem;box-shadow:var(--shadow-card);
+  }
+  .block-card.is-locked{border-color:var(--border);border-left-color:var(--border-strong)}
+  .block-card-top{display:flex;align-items:baseline;justify-content:space-between;gap:.75rem;margin-bottom:.35rem}
+  .block-card-name{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink)}
+  .block-card-fullname{font-size:11.5px;color:var(--ink-muted);margin-bottom:.55rem}
+  .block-card-dates{
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-muted);font-weight:500;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .block-badge{
+    font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;letter-spacing:.02em;
+    background:var(--accent-wash);color:var(--accent-strong);border:1px solid var(--accent);
+  }
+  .block-note{font-size:11.5px;color:var(--ink-muted);margin-top:.6rem;line-height:1.45}
+  .block-locked-note{font-size:11.5px;color:var(--ink-faint);margin-top:.6rem;font-family:var(--font-mono)}
+  .block-attend-row{display:flex;gap:.5rem;margin-top:.7rem}
+
   @media(max-width:600px){
     .content{padding:1.25rem 1rem}
     .topbar{padding:.85rem 1rem}
@@ -578,7 +606,7 @@
   </div>
   <div class="login-card">
     <div class="iim-mark">IIM Indore · PGP 2025–27</div>
-    <h1>Term 4 Schedule</h1>
+    <h1>Term 5 Schedule</h1>
     <p>Enter your IIM email or roll number to see your personal timetable.</p>
 
     <div class="error-msg" id="kicked-msg" style="display:none">You were signed out because this account was logged in on another device.</div>
@@ -640,7 +668,7 @@
 <div id="app">
   <div class="topbar">
     <div class="topbar-left">
-      <div class="topbar-brand">IIM Indore · T4</div>
+      <div class="topbar-brand">IIM Indore · T5</div>
       <div class="user-pill" id="user-pill">—</div>
     </div>
     <div class="topbar-right">
@@ -666,14 +694,15 @@
 
   <div id="tab-today" class="content">
     <div class="date-nav">
-      <button class="nav-btn" onclick="changeDay(-1)">← Prev</button>
+      <button class="nav-btn" id="today-prev-btn" onclick="changeDay(-1)">← Prev</button>
       <div class="date-display">
         <div class="day-name" id="view-day-name">—</div>
         <div class="date-full" id="view-date-full">—</div>
       </div>
-      <button class="nav-btn" onclick="changeDay(1)">Next →</button>
+      <button class="nav-btn" id="today-next-btn" onclick="changeDay(1)">Next →</button>
     </div>
     <button class="friend-view-trigger" onclick="openFriendView()">👀 View a friend's schedule</button>
+    <div id="today-block-cards"></div>
     <div class="stats-row" id="today-stats"></div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div>Class</div>
@@ -687,7 +716,7 @@
   <div id="tab-term" class="content" style="display:none">
     <div class="jump-to-date-row">
       <label class="finder-label" for="term-jump-date">Jump to date</label>
-      <input type="date" id="term-jump-date" min="2026-06-15" max="2026-09-08" onchange="jumpTermToDate(this.value)">
+      <input type="date" id="term-jump-date" min="2026-09-16" max="2026-11-01" onchange="jumpTermToDate(this.value)">
     </div>
     <div class="search-bar">
       <span class="search-icon">🔍</span>
@@ -710,7 +739,7 @@
   <div id="tab-finder" class="content" style="display:none">
     <div class="finder-date-row">
       <label class="finder-label">Pick a date</label>
-      <input type="date" id="finder-date" min="2026-06-15" max="2026-09-08" onchange="renderFinder()">
+      <input type="date" id="finder-date" min="2026-09-16" max="2026-11-01" onchange="renderFinder()">
     </div>
 
     <div class="finder-people-section">
@@ -816,30 +845,75 @@ const SLOTS = [
   {key:"s9",label:"Slot 9",time:"10:15 – 11:30 pm"},
 ];
 
+// Rebuilt for Term 5 — every code + full name straight from the T-5
+// Course List tab. HOP/VHMF/ELDM (zero-session block courses) are in
+// here too so their full names show on the block cards.
 const COURSE_NAMES = {
-  "ACEL":"Advanced Corporate & Economic Laws","ADMA":"Advanced Decision Modeling & Analytics",
-  "AIMLB":"AI & Machine Learning for Business","B2B":"Business to Business Marketing",
-  "BF":"Behavioural Finance","BM":"Brand Management","Bmod":"Business Models",
-  "CABV":"Critical Aspects of Business Valuation","CB":"Consumer Behaviour",
-  "CCR":"Communicating Corporate Reputation","CEDA":"Corporate Entrepreneurship in the Disruptive Age",
-  "CHW":"Consciousness & Holistic Wellbeing","CNN":"Consumer Neuroscience & Neuromarketing",
-  "DIW":"Diversity & Inclusion in the Workplace","DM":"Digital Marketing",
-  "DV":"Data Visualization","ExO":"Extreme Outdoors","FAMA":"Financial Aspects of M&A",
-  "FMac":"Financial Macroeconomics","GAFW":"Gen AI & Future of Work",
-  "GAIB":"Generative AI in Business","GBM":"Gamification & Behavioural Design",
-  "HRAI":"Human Resource Analytics","IAPM":"Investment Analysis & Portfolio Management",
-  "IB":"Investment Banking","IBSCG":"International Business Strategies",
-  "IF":"International Finance","ITA":"Introduction to Technical Analysis",
-  "ITWTO":"International Trade & WTO","LMPO":"Logistics Management & Platform Operations",
-  "LSS":"Lean Six Sigma","M&A":"Mergers & Acquisitions",
-  "MACR":"Mergers, Acquisitions & Corporate Restructuring","MSN":"Managing Social Networks",
-  "NCIS":"Nonverbal Communication in Interpersonal Success",
-  "OCMC":"Organizational Change Management & Consulting",
-  "OFD":"Options, Futures & Other Derivatives","PM":"Project Management",
-  "PPA":"Public Policy Analysis","Pricing":"Pricing","Python":"Python Hands-on",
-  "RegA":"Regression Analysis","Retail":"Retail Management","SA":"Strategic Alliances",
-  "SABE":"Strategic Analysis of Business Events","SM":"Strategic Marketing",
-  "SS":"Strategy Simulation","TOC":"Theory of Constraints","TSB":"Technology Strategy for Business",
+  "CCMT":"Corporate Communication And Media Training",
+  "GPP":"Games People Play: Communication In High-Stakes Situations",
+  "CIED":"Contemporary Issues In Economic Development",
+  "CCIT":"Cryptos, Central Bank And Inflation Targeting",
+  "ESIndia":"Economic Survey Of India",
+  "EBS":"Economics Of Business Strategy",
+  "EPP":"Economics Of Public Policy",
+  "IBH":"Indian Business History",
+  "MDT":"Management Of Direct Taxes",
+  "CFIP":"Corporate Finance In Practice",
+  "CFFA":"Corporate Frauds And Forensic Accounting",
+  "FMV":"Financial Modeling And Valuation",
+  "FSP":"Financing And Structuring Projects",
+  "FIS":"Fixed Income Securities",
+  "PFWM":"Personal Finance & Wealth Management",
+  "SFCM":"Sustainable Finance And Carbon Markets",
+  "SLRI":"Sustainable Leadership And Responsibility To Investors",
+  "CG":"Corporate Governance",
+  "CSO":"Culture, Society And Organization",
+  "IOP":"Insider Outsider Perspectives: Understanding Other Cultures (Iop)",
+  "LMW":"Leading In A Multipolar World",
+  "NWB":"Nature And Well-Being",
+  "PBPW":"Politics And Business In A Polycrisis World",
+  "TAW":"Thriving At Work",
+  "ATPM":"Ai & Technology Product Management",
+  "DV":"Data Visualisation",
+  "MBA":"Metaverse For Business Applications",
+  "CRM":"Customer Relationship Management",
+  "VHMF":"Vintage and Heritage Marketing in Field Visit Settings",
+  "ELDM":"Experiential Lessons In Destination Marketing",
+  "IMC":"Integrated Marketing Communications",
+  "MMM":"Man and Machine: Managing Human–AI Collaborations",
+  "MN":"Marketing Narratives",
+  "MSG":"Marketing Strategies Through Games",
+  "Social":"Social Marketing",
+  "Sport":"Sports Marketing",
+  "AFM":"Agile For Managers",
+  "MLVW":"Managing And Leading In Vuca World",
+  "SBN":"Strategic Business Negotiation",
+  "BS":"Behavioral Strategy",
+  "GS":"Growth Strategy",
+  "HOP":"Himalayan Outbound Program",
+  "MPPP":"Managing Public Private Partnerships",
+  "MACR":"Mergers, Acquisitions And Corporate Restructuring",
+  "SES":"Sports and Entertainment Strategy: Frameworks and Deals",
+  "SA":"Strategic Alliance",
+  "SS":"Strategy Simulation",};
+
+// ─── ZERO-SESSION / BLOCK COURSES ────────────────────────────
+// Courses with no rows in the timetable grid — marked once, present or
+// absent, for the whole block rather than per session. Kept in lockstep
+// with ZERO_SESSION_COURSES on the backend. HOP is the only one with a
+// live marking window this term; VHMF/ELDM are listed so their full
+// names resolve and so they're recognised as block (not per-session)
+// courses, but they get no trek-style banner yet.
+const BLOCK_COURSES = ["HOP", "VHMF", "ELDM"];
+
+// Per-block display + marking window. "start"/"end" bound the trek on the
+// Today tab (banner shows only within this range); "markFrom" is the first
+// day marking is allowed — enforced on the backend too, this is just so
+// the buttons don't look tappable before then. Dates are inclusive,
+// "yyyy-MM-dd", IST.
+const BLOCK_WINDOWS = {
+  "HOP": { start: "2026-10-24", end: "2026-11-01", markFrom: "2026-10-24",
+           label: "24 Oct – 1 Nov", blurb: "7-day Himalayan trek" },
 };
 
 const DAYS   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
@@ -856,7 +930,7 @@ let currentToken = null; // this device's saved auth token for currentUser, if a
 // → allowed-absence count), loaded with the rest of the timetable data.
 // myAttendance.records is per-student and only loaded once signed in.
 let COURSE_BUFFERS = {};
-let myAttendance = { records: {} }; // "date|slotKey|CODE" -> "present" | "absent"
+let myAttendance = { records: {} }; // "date|slotKey|CODE" -> "present" | "absent"; block: "BLOCK|CODE" -> ...
 let attendanceBannerDismissed = false; // resets every page load — by design, see updateAttendanceBanner()
 
 // Bumped any time TT/STUDENTS/COURSE_BUFFERS or myAttendance.records actually
@@ -865,20 +939,82 @@ let attendanceBannerDismissed = false; // resets every page load — by design, 
 // previously they rebuilt unconditionally on every single tap.
 let dataVersion = 0;
 
-// Term-4 runs June 15 – Sep 8, 2026. If the real "today" falls outside this
-// window (e.g. testing before/after the term), clamp to the nearest term date
-// instead of showing a date with no data.
-const TERM_START = new Date('2026-06-15');
-const TERM_END   = new Date('2026-09-08');
+// Term 5 begins 16 Sep 2026 for the whole batch — the shared floor for
+// "today" and every date picker. There is deliberately NO shared upper
+// bound: each person's usable range ends at their OWN last item, computed
+// per-login in userTermEnd (see computeUserTermEnd). TERM_START stays a
+// constant because it's genuinely batch-wide; the end is not.
+const TERM_START = new Date('2026-09-16');
 
+// Filled in at login by computeUserTermEnd(). Until then (e.g. on the
+// login screen itself) getTermTodayDate falls back to just clamping the
+// lower bound, which is all that matters pre-login.
+let userTermEnd = null;
+
+// The latest date this specific student cares about: the max of their
+// last scheduled session (class/quiz/exam) and — only if they subscribe
+// to a block course — that block's end date. This is what the "hard-stop"
+// range is built from, so a person can navigate right up to their final
+// item and no further. Recomputed at each login (courses can differ).
+function computeUserTermEnd() {
+  let latest = new Date(TERM_START); // never earlier than term start
+
+  if (TT && currentUser) {
+    for (const dateStr of Object.keys(TT)) {
+      // Only count days where THIS user actually has something.
+      if (getUserSessions(dateStr).length === 0) continue;
+      const d = new Date(dateStr + 'T00:00:00');
+      if (d > latest) latest = d;
+    }
+  }
+
+  // Block courses have no grid rows, so their end date has to be folded in
+  // explicitly — otherwise a HOP student's range would stop at their last
+  // regular class and they could never reach the trek week.
+  if (currentUser) {
+    const myCodes = new Set((currentUser.courses || [])
+      .map(c => c.replace(/-([A-Z])$/i, '').toUpperCase()));
+    for (const code of BLOCK_COURSES) {
+      if (!myCodes.has(code)) continue;
+      const win = BLOCK_WINDOWS[code];
+      if (!win || !win.end) continue;
+      const endD = new Date(win.end + 'T00:00:00');
+      if (endD > latest) latest = endD;
+    }
+  }
+
+  userTermEnd = latest;
+}
+
+function getTermEndDate() {
+  // Fallback to term start if we haven't computed a per-user end yet.
+  return userTermEnd || new Date(TERM_START);
+}
+
+// Clamps a candidate "today" into [TERM_START, userTermEnd]. Before login
+// userTermEnd is null, so this just enforces the lower bound — which is
+// all the login screen needs.
 function getTermTodayDate() {
   const now = new Date();
   if (now < TERM_START) return new Date(TERM_START);
-  if (now > TERM_END)   return new Date(TERM_END);
+  const end = getTermEndDate();
+  if (userTermEnd && now > end) return new Date(end);
   return now;
 }
 
 let viewDate = getTermTodayDate();
+
+// Applies the shared lower / per-person upper bound to the Today tab's
+// date pickers and prev/next buttons, so navigation can't run past a
+// person's own last item. Called after computeUserTermEnd() at login.
+function applyUserDateBounds() {
+  const endKey = dateKey(getTermEndDate());
+  const startKey = dateKey(TERM_START);
+  ['term-jump-date', 'finder-date'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.min = startKey; el.max = endKey; }
+  });
+}
 
 // ─── TOAST — lightweight, non-blocking feedback (e.g. a failed save) ──
 function showToast(msg, isError) {
@@ -895,9 +1031,15 @@ function showToast(msg, isError) {
 // one, then quietly re-fetch in the background and only touch the UI
 // again if something actually changed. First-ever visit on a device has
 // no cache yet, so it falls back to the old wait-for-fetch behavior.
-const CACHE_KEY_TT  = 'iimT4_cache_timetable';
-const CACHE_KEY_STU = 'iimT4_cache_students';
-const CACHE_KEY_CB  = 'iimT4_cache_coursebuffers';
+//
+// Cache keys carry a t5 marker (bumped from the old t4 keys) so that on
+// the first Term-5 load every device throws away its stale Term-4
+// timetable/roster blob and re-fetches fresh. The token/PIN keys are a
+// SEPARATE namespace and are deliberately NOT bumped — nobody is forced
+// to re-enter a PIN just because the term rolled over.
+const CACHE_KEY_TT  = 'iimT5_cache_timetable';
+const CACHE_KEY_STU = 'iimT5_cache_students';
+const CACHE_KEY_CB  = 'iimT5_cache_coursebuffers';
 
 function setData(tt, stu, buffers) {
   dataVersion++;
@@ -976,6 +1118,9 @@ async function loadData() {
     } else if (changed) {
       document.getElementById('student-hint').textContent =
         `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+      // Data changed under a signed-in user — their term-end may have moved
+      // (e.g. an exam date got added), so recompute before re-rendering.
+      if (currentUser) { computeUserTermEnd(); applyUserDateBounds(); }
       rerenderCurrentView();
     }
 
@@ -1443,6 +1588,7 @@ async function refreshDataInBackground() {
     const combined = await res.json();
     const freshTT  = combined.timetable;
     const freshStu = combined.students;
+    const freshCB  = combined.courseBuffers || {};
     const ttJson   = JSON.stringify(freshTT);
     const stuJson  = JSON.stringify(freshStu);
     const changed  = ttJson !== localStorage.getItem(CACHE_KEY_TT) || stuJson !== localStorage.getItem(CACHE_KEY_STU);
@@ -1452,11 +1598,15 @@ async function refreshDataInBackground() {
     try {
       localStorage.setItem(CACHE_KEY_TT, ttJson);
       localStorage.setItem(CACHE_KEY_STU, stuJson);
+      localStorage.setItem(CACHE_KEY_CB, JSON.stringify(freshCB));
     } catch (e) { /* storage full/unavailable — not fatal, just skip caching */ }
 
-    setData(freshTT, freshStu);
+    setData(freshTT, freshStu, freshCB);
     document.getElementById('student-hint').textContent =
       `${Object.keys(STUDENTS).length} students loaded · data from Google Sheets`;
+    // A schedule change can move this user's last item — recompute the
+    // per-person date bounds before re-rendering.
+    if (currentUser) { computeUserTermEnd(); applyUserDateBounds(); }
     rerenderCurrentView();
   } catch (e) {
     // Network hiccup — silently skip, the next cycle or foreground resume will try again
@@ -1563,6 +1713,10 @@ function loginAs(email) {
   document.getElementById('user-pill').innerHTML =
     `<span>${currentUser.name}</span> · ${currentUser.roll}`;
 
+  // Per-person date range: compute this user's last item, then clamp
+  // "today" and the date pickers to [TERM_START, that date].
+  computeUserTermEnd();
+  applyUserDateBounds();
   viewDate = getTermTodayDate();
   renderToday();
   startSessionWatch();
@@ -1589,6 +1743,7 @@ function handleLogout() {
   currentToken = null;
   myAttendance = { records: {} };
   attendanceBannerDismissed = false;
+  userTermEnd = null;
   document.getElementById('attendance-banner').style.display = 'none';
   clearSessionMemory();
   document.getElementById('login-screen').style.display = 'flex';
@@ -1662,6 +1817,32 @@ function getSessionBaseCode(cell) {
   return c.split(/\s+/)[0].toUpperCase();
 }
 
+// ─── BLOCK / HOP HELPERS ─────────────────────────────────────
+// Which block courses (HOP/VHMF/ELDM) is the logged-in student subscribed
+// to? Compares against the base code (strips any -A/-B suffix, though
+// block courses generally have none).
+function getUserBlockCourses() {
+  if (!currentUser) return [];
+  const myCodes = new Set((currentUser.courses || [])
+    .map(c => c.replace(/-([A-Z])$/i, '').toUpperCase()));
+  return BLOCK_COURSES.filter(code => myCodes.has(code));
+}
+
+// Is a given dateKey inside a block's trek window (inclusive)?
+function isDateInBlockWindow(code, dateKeyStr) {
+  const win = BLOCK_WINDOWS[code];
+  if (!win) return false;
+  return dateKeyStr >= win.start && dateKeyStr <= win.end;
+}
+
+// Can this block be marked yet? (server enforces this too; this only keeps
+// the buttons from looking live before the trek starts.)
+function canMarkBlock(code) {
+  const win = BLOCK_WINDOWS[code];
+  if (!win || !win.markFrom) return true;
+  return dateKey(new Date()) >= win.markFrom;
+}
+
 // ─── GET USER SESSIONS FOR A DATE (with clash detection) ─────
 function getUserSessions(dateStr) {
   if (!TT) return [];
@@ -1732,9 +1913,73 @@ function findSisterSectionAlt(cell, dateStr, mySlotKeysToAvoid) {
 
 // ─── TODAY VIEW ───────────────────────────────────────────────
 function changeDay(n) {
-  viewDate = new Date(viewDate);
-  viewDate.setDate(viewDate.getDate() + n);
+  const next = new Date(viewDate);
+  next.setDate(next.getDate() + n);
+  // Hard-stop at the person's own range: never step below TERM_START or
+  // above their computed last item.
+  const startKey = dateKey(TERM_START);
+  const endKey   = dateKey(getTermEndDate());
+  const nextKey  = dateKey(next);
+  if (nextKey < startKey || nextKey > endKey) return;
+  viewDate = next;
   renderToday();
+}
+
+// Greys out Prev/Next when the next step would leave the person's range.
+function updateTodayNavButtons() {
+  const startKey = dateKey(TERM_START);
+  const endKey   = dateKey(getTermEndDate());
+  const curKey   = dateKey(viewDate);
+  const prev = document.getElementById('today-prev-btn');
+  const next = document.getElementById('today-next-btn');
+  if (prev) prev.disabled = curKey <= startKey;
+  if (next) next.disabled = curKey >= endKey;
+}
+
+// Renders the HOP/block trek card(s) shown on the Today tab during a
+// block's window. Only the logged-in user's own block subscriptions
+// appear, and only on dates inside the trek window — outside it, nothing
+// shows (block courses have no normal sessions). Present/Absent here
+// writes through markBlockAttendance; before markFrom the buttons are
+// greyed with an "opens" note (server rejects early marks regardless).
+function renderTodayBlockCards() {
+  const host = document.getElementById('today-block-cards');
+  if (!host) return;
+  host.innerHTML = '';
+  if (!currentUser) return;
+
+  const key = dateKey(viewDate);
+  const myBlocks = getUserBlockCourses();
+  if (myBlocks.length === 0) return;
+
+  let html = '';
+  for (const code of myBlocks) {
+    const win = BLOCK_WINDOWS[code];
+    if (!win) continue;                       // no window defined (e.g. VHMF/ELDM this term) — nothing to show
+    if (!isDateInBlockWindow(code, key)) continue; // only during the trek week itself
+
+    const marked   = myAttendance.records['BLOCK|' + code];
+    const markable = canMarkBlock(code);
+    const fullName = COURSE_NAMES[code] || '';
+    const dis      = markable ? '' : 'disabled';
+
+    html += `<div class="block-card ${markable ? '' : 'is-locked'}">
+      <div class="block-card-top">
+        <div class="block-card-name">${code} <span class="block-badge">block course</span></div>
+        <div class="block-card-dates">🏔 ${win.label}</div>
+      </div>
+      ${fullName ? `<div class="block-card-fullname">${fullName}</div>` : ''}
+      <div class="block-attend-row attend-row">
+        <button class="attend-btn attend-present ${marked==='present'?'active':''}" ${dis} onclick="markBlockAttendance('${code}','present',this)">✓ Present</button>
+        <button class="attend-btn attend-absent ${marked==='absent'?'active':''}" ${dis} onclick="markBlockAttendance('${code}','absent',this)">✕ Absent</button>
+      </div>
+      ${markable
+        ? `<div class="block-note">${win.blurb} · one present/absent mark for the whole block · no buffer.</div>`
+        : `<div class="block-locked-note">Marking opens ${win.label.split('–')[0].trim()} (${win.markFrom}).</div>`}
+    </div>`;
+  }
+
+  host.innerHTML = html;
 }
 
 function renderToday() {
@@ -1746,6 +1991,9 @@ function renderToday() {
   document.getElementById('view-date-full').innerHTML  =
     viewDate.getDate() + ' ' + MONTHS[viewDate.getMonth()] + ' ' + viewDate.getFullYear() +
     (isToday ? '<span class="today-badge">today</span>' : '');
+
+  updateTodayNavButtons();
+  renderTodayBlockCards();
 
   const quizzes = sessions.filter(s => isQuiz(s.cell));
   const exams   = sessions.filter(s => isExam(s.cell));
@@ -1763,7 +2011,13 @@ function renderToday() {
   const canMarkThisDay = key <= todayKey_;
 
   if (sessions.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
+    // If there's a block card showing (trek week), an otherwise-empty day
+    // isn't really "empty" — suppress the empty-state so the trek card
+    // stands alone rather than sitting above a "no classes" message.
+    const hasBlockCard = document.getElementById('today-block-cards').innerHTML.trim() !== '';
+    container.innerHTML = hasBlockCard
+      ? ''
+      : `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
     return;
   }
 
@@ -1818,353 +2072,387 @@ function getCurrentSlot() {
   if (m>=1335&&m<1410) return 's9'; return null;
 }
 
-// ─── ATTENDANCE TRACKER ─────────────────────────────────────────
-// Present/Absent buttons live on the Today tab's regular-class tiles
-// (quiz/exam tiles deliberately don't get them). Buffers come from
-// COURSE_BUFFERS (credits from the sheet, with hardcoded overrides like
-// SS applied server-side) — see Code.gs for that side.
-
-// Every regular-class session strictly BEFORE today, across the whole
-// term, for the logged-in user. Used by both the reminder banner and the
-// Attendance Tracker's "unmarked" counts. "Strictly before today" (not
-// "up to and including") on purpose — today's own classes may not have
-// happened yet, so they're never nagged about until tomorrow.
+// ─── ATTENDANCE TRACKER ───────────────────────────────────────
+// All of a user's PAST class sessions (excludes quizzes/exams and any
+// date after today), used both for the buffer math and for the "you have
+// unmarked classes" nudge. Block courses are excluded here — they're
+// marked once via markBlockAttendance, not per session.
 function getAllPastClassSessions() {
-  if (!currentUser || !TT) return [];
-  const todayKey_ = dateKey(new Date());
-  const dates = Object.keys(TT).filter(d => d < todayKey_).sort();
+  if (!TT || !currentUser) return [];
+  const todayKey = dateKey(new Date());
   const out = [];
-  for (const d of dates) {
-    for (const s of getUserSessions(d)) {
-      if (!isQuiz(s.cell) && !isExam(s.cell)) out.push(s);
+  for (const dateStr of Object.keys(TT)) {
+    if (dateStr > todayKey) continue; // future — can't have attended yet
+    for (const s of getUserSessions(dateStr)) {
+      if (isQuiz(s.cell) || isExam(s.cell)) continue; // only real classes count
+      out.push(s);
     }
   }
   return out;
 }
 
 function getUnmarkedPastSessions() {
-  return getAllPastClassSessions().filter(s => {
+  const past = getAllPastClassSessions();
+  return past.filter(s => {
     const code = getSessionBaseCode(s.cell);
     return !myAttendance.records[s.dateStr + '|' + s.slot.key + '|' + code];
   });
 }
 
 async function loadMyAttendance() {
-  myAttendance = { records: {} };
   if (!currentUser || !currentToken) return;
   try {
     const res = await postAction({ action: 'getMyAttendance', email: currentUser.email, token: currentToken });
-    if (res.success) myAttendance.records = res.records || {};
-  } catch (e) {
-    console.warn('Could not load attendance records:', e.message);
-  }
-  dataVersion++;
-  renderToday();
-  updateAttendanceBanner();
-  if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
-}
-
-// Tapping a tile's Present/Absent twice deselects it back to unmarked.
-// The actual save goes through sendAttendanceWrite() rather than a plain
-// fetch — see its comment for why (a normal fetch gets killed by the
-// browser if you refresh right after tapping, which is exactly how marks
-// were getting lost).
-function markAttendance(dateStr, slotKey, code, status, btnEl) {
-  const recKey = dateStr + '|' + slotKey + '|' + code;
-  const prevStatus = myAttendance.records[recKey];
-  const isDeselect = prevStatus === status;
-  const newStatus = isDeselect ? null : status;
-
-  // Optimistic update so the tap feels instant; rolled back below only if
-  // the fallback (non-beacon) path reports a real failure. Deliberately
-  // NOT a full renderToday() re-render — rebuilding every slot card's HTML
-  // on every single tap was the main source of visible jank on mobile.
-  // Toggling just these two buttons' classes is enough.
-  if (newStatus) myAttendance.records[recKey] = newStatus; else delete myAttendance.records[recKey];
-  dataVersion++;
-  setAttendButtonVisual(btnEl, newStatus);
-  updateAttendanceBanner();
-  if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
-
-  sendAttendanceWrite(
-    { action: 'markAttendance', email: currentUser.email, token: currentToken,
-      date: dateStr, slotKey: slotKey, courseCode: code, status: isDeselect ? 'clear' : status },
-    () => {
-      // Rollback — only reachable via the fallback fetch path below.
-      if (prevStatus) myAttendance.records[recKey] = prevStatus; else delete myAttendance.records[recKey];
-      dataVersion++;
-      setAttendButtonVisual(btnEl, prevStatus);
-      updateAttendanceBanner();
-      if (document.getElementById('tab-attendance').style.display !== 'none') renderAttendanceTracker();
-      showToast("Couldn't save that — check your connection and try again.", true);
+    if (res.success && res.records) {
+      myAttendance.records = res.records;
+      dataVersion++; // attendance changed — let Attendance tab know to redraw
+      rerenderCurrentView();
     }
-  );
-}
-
-// Toggles just the Present/Absent button pair's .active class directly,
-// without touching the rest of the Today tab's DOM.
-function setAttendButtonVisual(btnEl, activeStatus) {
-  if (!btnEl || !btnEl.parentElement) return;
-  const row = btnEl.parentElement;
-  row.querySelectorAll('.attend-btn').forEach(b => b.classList.remove('active'));
-  if (!activeStatus) return;
-  const target = row.querySelector(activeStatus === 'present' ? '.attend-present' : '.attend-absent');
-  if (target) target.classList.add('active');
-}
-
-// navigator.sendBeacon is the standard browser API for "this request must
-// survive even if the page navigates away a moment later" — a normal
-// fetch() gets aborted mid-flight on refresh/close, which is exactly what
-// was silently losing attendance marks before. Once sendBeacon hands a
-// request to the browser, delivery is guaranteed even past page unload.
-// Its tradeoff: no response to read, so failures can't be detected or
-// rolled back on that path — acceptable here, since the alternative was
-// outright data loss. Only falls back to an awaited fetch (with proper
-// rollback) if sendBeacon itself isn't available or refuses to queue.
-function sendAttendanceWrite(payload, onFailure) {
-  if (navigator.sendBeacon) {
-    const blob = new Blob([JSON.stringify(payload)], { type: 'text/plain;charset=utf-8' });
-    const queued = navigator.sendBeacon(WEBAPP_URL, blob);
-    if (queued) return;
+  } catch (e) {
+    // Couldn't load saved attendance — leave whatever we have; the tab
+    // still works, it just may not reflect marks made on another device yet.
   }
-  postAction(payload).then(res => {
-    if (!res.success) onFailure();
-  }).catch(() => onFailure());
 }
 
-// Dismissible, not blocking: closing it hides it for the rest of this
-// visit only — it comes back next time the app is opened, as long as
-// something's still unmarked. Resolving everything hides it immediately
-// too, same as a manual dismiss.
+// Optimistic per-session mark: flip the UI immediately, write in the
+// background, roll back + toast on failure. Keeps day-tapping snappy.
+function markAttendance(dateStr, slotKey, code, status, btnEl) {
+  if (!currentUser) return;
+  const recordKey = dateStr + '|' + slotKey + '|' + code;
+  const prev = myAttendance.records[recordKey];
+  const next = (prev === status) ? undefined : status; // tapping the active one again clears it
+
+  if (next === undefined) delete myAttendance.records[recordKey];
+  else myAttendance.records[recordKey] = next;
+  dataVersion++;
+
+  setAttendButtonVisual(btnEl, next);
+  updateAttendanceBanner();
+
+  sendAttendanceWrite({ action: 'markAttendance', email: currentUser.email, token: currentToken,
+                        date: dateStr, slotKey, courseCode: code, status: next || 'clear' }, () => {
+    // rollback
+    if (prev === undefined) delete myAttendance.records[recordKey];
+    else myAttendance.records[recordKey] = prev;
+    dataVersion++;
+    setAttendButtonVisual(btnEl, prev);
+    updateAttendanceBanner();
+  });
+}
+
+// Whole-block present/absent (HOP). One record per block course, keyed
+// "BLOCK|CODE". Uses its own backend action (markBlockAttendance), which
+// enforces subscription + the marking window server-side. Optimistic,
+// same as per-session marking.
+function markBlockAttendance(code, status, btnEl) {
+  if (!currentUser) return;
+  if (!canMarkBlock(code)) { showToast('Marking for this block opens later.', true); return; }
+
+  const recordKey = 'BLOCK|' + code;
+  const prev = myAttendance.records[recordKey];
+  const next = (prev === status) ? undefined : status;
+
+  if (next === undefined) delete myAttendance.records[recordKey];
+  else myAttendance.records[recordKey] = next;
+  dataVersion++;
+
+  // Reflect on both buttons in the row (present + absent), not just the tapped one.
+  const row = btnEl ? btnEl.closest('.block-attend-row') : null;
+  if (row) {
+    const p = row.querySelector('.attend-present');
+    const a = row.querySelector('.attend-absent');
+    if (p) p.classList.toggle('active', next === 'present');
+    if (a) a.classList.toggle('active', next === 'absent');
+  }
+
+  sendAttendanceWrite({ action: 'markBlockAttendance', email: currentUser.email, token: currentToken,
+                        courseCode: code, status: next || 'clear' }, () => {
+    // rollback
+    if (prev === undefined) delete myAttendance.records[recordKey];
+    else myAttendance.records[recordKey] = prev;
+    dataVersion++;
+    if (row) {
+      const p = row.querySelector('.attend-present');
+      const a = row.querySelector('.attend-absent');
+      if (p) p.classList.toggle('active', prev === 'present');
+      if (a) a.classList.toggle('active', prev === 'absent');
+    }
+    // If the Attendance tab is open, redraw its HOP status card too.
+    const att = document.getElementById('tab-attendance');
+    if (att && att.style.display !== 'none') renderAttendanceTracker();
+  });
+
+  // Keep the Attendance tab's HOP card in sync when it's the visible tab.
+  const att = document.getElementById('tab-attendance');
+  if (att && att.style.display !== 'none') renderAttendanceTracker();
+}
+
+function setAttendButtonVisual(btnEl, status) {
+  if (!btnEl) return;
+  const row = btnEl.closest('.attend-row');
+  if (!row) return;
+  const p = row.querySelector('.attend-present');
+  const a = row.querySelector('.attend-absent');
+  if (p) p.classList.toggle('active', status === 'present');
+  if (a) a.classList.toggle('active', status === 'absent');
+}
+
+// Fire-and-verify write helper shared by per-session and block marking.
+// onFail runs (for rollback) on any non-success or network error.
+async function sendAttendanceWrite(payload, onFail) {
+  try {
+    const res = await postAction(payload);
+    if (!res.success) {
+      if (res.error === 'invalid_token') { forceSignOutElsewhere(); return; }
+      onFail && onFail();
+      showToast(res.error === 'window_closed' ? 'Marking window has closed for this.' : 'Could not save — try again.', true);
+    }
+  } catch (e) {
+    onFail && onFail();
+    showToast('Could not save — check your connection.', true);
+  }
+}
+
 function updateAttendanceBanner() {
   const banner = document.getElementById('attendance-banner');
-  if (!currentUser) { hideAttendanceBannerNow(banner); return; }
+  if (!banner) return;
+  if (!currentUser || attendanceBannerDismissed) { banner.style.display = 'none'; banner.classList.remove('show'); return; }
 
   const unmarked = getUnmarkedPastSessions();
-  if (unmarked.length === 0 || attendanceBannerDismissed) {
-    hideAttendanceBannerNow(banner);
-    return;
-  }
-  document.getElementById('attendance-banner-text').textContent =
-    `You have ${unmarked.length} class${unmarked.length!==1?'es':''} not marked present or absent.`;
-  if (banner.style.display !== 'flex') {
-    banner.style.display = 'flex';
-    requestAnimationFrame(() => banner.classList.add('show'));
-  }
-}
+  if (unmarked.length === 0) { banner.style.display = 'none'; banner.classList.remove('show'); return; }
 
-function hideAttendanceBannerNow(banner) {
-  if (banner.style.display === 'none' || !banner.style.display) return;
-  banner.classList.remove('show');
-  setTimeout(() => { banner.style.display = 'none'; }, 200);
+  document.getElementById('attendance-banner-text').innerHTML =
+    `You have <strong>${unmarked.length}</strong> past class${unmarked.length !== 1 ? 'es' : ''} not marked present/absent yet.`;
+  banner.style.display = 'flex';
+  requestAnimationFrame(() => banner.classList.add('show'));
 }
 
 function dismissAttendanceBanner() {
   attendanceBannerDismissed = true;
-  hideAttendanceBannerNow(document.getElementById('attendance-banner'));
+  const banner = document.getElementById('attendance-banner');
+  banner.classList.remove('show');
+  setTimeout(() => { banner.style.display = 'none'; }, 200);
 }
 
-// Jumps straight to the earliest unmarked day on the Today tab, instead
-// of just nagging — saves clicking "Prev" repeatedly to find it.
+// Jump the Today tab to the earliest date that still has an unmarked class.
 function goToEarliestUnmarked() {
   const unmarked = getUnmarkedPastSessions();
   if (unmarked.length === 0) return;
-  const earliest = unmarked.map(s => s.dateStr).sort()[0];
-  viewDate = new Date(earliest + 'T00:00:00');
-  switchTab('today', document.getElementById('tabbtn-today'));
+  unmarked.sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+  viewDate = new Date(unmarked[0].dateStr + 'T00:00:00');
+  const todayBtn = document.getElementById('tabbtn-today');
+  switchTab('today', todayBtn);
+  renderToday();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Render-cache trackers — see dataVersion above. lastTermRenderSig also
-// folds in the search box, dropdown, and filter states since those can
-// change the Full Term view without TT itself changing.
-let lastAttendanceRenderVersion = -1;
-let lastTermRenderSig = null;
-
-function ensureCourseDisplayName(code) {
-  const name = COURSE_NAMES[code];
-  return name ? `${code} — ${name}` : code;
-}
-
+// Renders one card per subscribed class course showing marked present /
+// absent / buffer-left, PLUS a status card for each subscribed block
+// course (HOP) that has no buffer — just present/absent for the block.
+let attendanceRenderedVersion = -1;
 function renderAttendanceTracker() {
-  const container = document.getElementById('attendance-tracker-list');
-  if (!currentUser) { container.innerHTML = ''; return; }
+  const host = document.getElementById('attendance-tracker-list');
+  if (!host || !currentUser) return;
 
-  // Re-opening this tab used to rebuild every course card from scratch
-  // every single time, even with no new marks since the last visit.
-  // Only redo the work if the underlying attendance data actually moved.
-  if (dataVersion === lastAttendanceRenderVersion) return;
-  lastAttendanceRenderVersion = dataVersion;
+  const past = getAllPastClassSessions();
 
-  const codes = [...new Set((currentUser.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
-  if (codes.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>No courses found on your Course Matrix list.</p></div>`;
+  // Tally per course code.
+  const byCode = {};
+  for (const s of past) {
+    const code = getSessionBaseCode(s.cell);
+    if (!byCode[code]) byCode[code] = { held: 0, present: 0, absent: 0, unmarked: 0 };
+    byCode[code].held++;
+    const mark = myAttendance.records[s.dateStr + '|' + s.slot.key + '|' + code];
+    if (mark === 'present') byCode[code].present++;
+    else if (mark === 'absent') byCode[code].absent++;
+    else byCode[code].unmarked++;
+  }
+
+  let html = '';
+
+  // ── Block-course status cards (HOP) — shown first, above the buffer
+  // cards, since the trek is a distinct thing and has no buffer math. ──
+  for (const code of getUserBlockCourses()) {
+    const win = BLOCK_WINDOWS[code];
+    const marked = myAttendance.records['BLOCK|' + code];
+    const fullName = COURSE_NAMES[code] || '';
+    const statusTxt = marked === 'present' ? '✓ Marked present'
+                    : marked === 'absent'  ? '✕ Marked absent'
+                    : 'Not marked yet';
+    const cls = marked === 'present' ? 'buffer-ok'
+              : marked === 'absent'  ? 'buffer-out' : '';
+    html += `<div class="attendance-card ${cls}">
+      <div class="attendance-card-top">
+        <div>
+          <div class="attendance-card-name">${code} <span class="block-badge">block</span></div>
+          ${fullName ? `<div class="attendance-card-fullname">${fullName}</div>` : ''}
+        </div>
+        <div class="attendance-buffer-pill">${statusTxt}</div>
+      </div>
+      <div class="attendance-card-stats">
+        <span>${win ? win.label : 'block course'}</span>
+        <span>one mark for the whole block · no buffer</span>
+      </div>
+    </div>`;
+  }
+
+  // ── Regular per-course buffer cards ──
+  const codes = Object.keys(byCode).sort();
+  if (codes.length === 0 && getUserBlockCourses().length === 0) {
+    host.innerHTML = `<div class="empty-state"><div class="empty-icon">🗓️</div><p>No past classes yet — attendance shows up here once your classes begin.</p></div>`;
+    attendanceRenderedVersion = dataVersion;
     return;
   }
 
-  // Past-session counts per course, for the "still unmarked" line.
-  const pastByCode = {};
-  for (const s of getAllPastClassSessions()) {
-    const code = getSessionBaseCode(s.cell);
-    pastByCode[code] = (pastByCode[code] || 0) + 1;
-  }
+  for (const code of codes) {
+    const t = byCode[code];
+    const allowed = COURSE_BUFFERS[code] != null ? COURSE_BUFFERS[code] : null;
+    const bufferLeft = allowed != null ? (allowed - t.absent) : null;
 
-  // Present/absent counts per course, straight from the attendance records.
-  const presentByCode = {}, absentByCode = {};
-  for (const key in myAttendance.records) {
-    const code = key.split('|')[2];
-    if (myAttendance.records[key] === 'present') presentByCode[code] = (presentByCode[code]||0) + 1;
-    else if (myAttendance.records[key] === 'absent') absentByCode[code] = (absentByCode[code]||0) + 1;
-  }
-
-  container.innerHTML = codes.map(code => {
-    const buffer  = COURSE_BUFFERS.hasOwnProperty(code) ? COURSE_BUFFERS[code] : null;
-    const present = presentByCode[code] || 0;
-    const absent  = absentByCode[code] || 0;
-    const marked  = present + absent;
-    const past    = pastByCode[code] || 0;
-    const unmarked = Math.max(0, past - marked);
-    const remaining = buffer === null ? null : buffer - absent;
-
-    let cardClass = '';
-    let pillText  = 'No credit data';
-    if (buffer !== null) {
-      cardClass = remaining <= 0 ? 'buffer-out' : remaining === 1 ? 'buffer-low' : 'buffer-ok';
-      pillText  = `${remaining} buffer${remaining!==1?'s':''} left`;
+    let cls = 'buffer-ok', pill = '';
+    if (allowed != null) {
+      if (bufferLeft < 0)      { cls = 'buffer-out'; pill = `${bufferLeft} over`; }
+      else if (bufferLeft <= 1){ cls = 'buffer-low'; pill = `${bufferLeft} left`; }
+      else                     { cls = 'buffer-ok';  pill = `${bufferLeft} left`; }
+    } else {
+      cls = 'buffer-ok'; pill = `${t.absent} absent`;
     }
 
-    return `<div class="attendance-card ${cardClass}">
+    const fullName = ensureCourseDisplayName(code);
+    html += `<div class="attendance-card ${cls}">
       <div class="attendance-card-top">
         <div>
           <div class="attendance-card-name">${code}</div>
-          ${COURSE_NAMES[code] ? `<div class="attendance-card-fullname">${COURSE_NAMES[code]}</div>` : ''}
+          ${fullName ? `<div class="attendance-card-fullname">${fullName}</div>` : ''}
         </div>
-        <span class="attendance-buffer-pill">${pillText}</span>
+        <div class="attendance-buffer-pill">${pill}</div>
       </div>
       <div class="attendance-card-stats">
-        <span><b>${present}</b> present</span>
-        <span><b>${absent}</b> absent</span>
-        ${buffer !== null ? `<span><b>${buffer}</b> total buffer${buffer!==1?'s':''}</span>` : ''}
+        <span>Held: <b>${t.held}</b></span>
+        <span>Present: <b>${t.present}</b></span>
+        <span>Absent: <b>${t.absent}</b></span>
       </div>
-      ${unmarked > 0 ? `<div class="attendance-card-unmarked">⚠ ${unmarked} past class${unmarked!==1?'es':''} not marked yet</div>` : ''}
+      ${t.unmarked > 0 ? `<div class="attendance-card-unmarked">${t.unmarked} class${t.unmarked!==1?'es':''} still unmarked</div>` : ''}
     </div>`;
-  }).join('');
+  }
+
+  host.innerHTML = html;
+  attendanceRenderedVersion = dataVersion;
 }
 
-// ─── TERM VIEW ────────────────────────────────────────────────
+function ensureCourseDisplayName(code) {
+  return COURSE_NAMES[code] || '';
+}
+
+// ─── FULL TERM VIEW ───────────────────────────────────────────
+let termExamFilterOn  = false;
+let termClashFilterOn = false;
+let termSubjectOptionsBuilt = false;
+let termRenderedVersion = -1;
+
+// Populate the subject dropdown once from every code the user actually has
+// across the term (classes, quizzes, exams), so filtering is exact.
 function ensureTermSubjectOptions() {
+  if (termSubjectOptionsBuilt || !TT || !currentUser) return;
   const sel = document.getElementById('term-subject-filter');
-  if (sel.dataset.populated) return;
-  const codes = [...new Set((currentUser.courses||[]).map(c => c.replace(/-([A-Z])$/i,'').toUpperCase()))].sort();
-  sel.innerHTML = '<option value="">All subjects</option>' + codes.map(code => {
-    const name = COURSE_NAMES[code];
-    return `<option value="${code}">${code}${name ? ' — ' + name : ''}</option>`;
-  }).join('');
-  sel.dataset.populated = '1';
+  if (!sel) return;
+  const codes = new Set();
+  for (const dateStr of Object.keys(TT)) {
+    for (const s of getUserSessions(dateStr)) codes.add(getSessionBaseCode(s.cell));
+  }
+  const sorted = [...codes].sort();
+  for (const code of sorted) {
+    const opt = document.createElement('option');
+    opt.value = code;
+    const nm = COURSE_NAMES[code] || '';
+    opt.textContent = nm ? `${code} — ${nm}` : code;
+    sel.appendChild(opt);
+  }
+  termSubjectOptionsBuilt = true;
 }
 
 function renderTerm() {
+  const host = document.getElementById('term-calendar');
+  if (!host || !currentUser) return;
   ensureTermSubjectOptions();
-  const q   = (document.getElementById('term-search').value||'').toLowerCase().trim();
-  const subjectFilter = document.getElementById('term-subject-filter').value; // '' = all
-  const todayKey_ = dateKey(new Date());
 
-  // This used to rebuild the entire ~3-month calendar — looping every day,
-  // every room, every slot — on every single tab switch, even if you just
-  // tapped away and back with no search/filter/date change in between.
-  // Skip the rebuild when none of that has actually moved.
-  const renderSig = `${dataVersion}|${q}|${subjectFilter}|${termExamFilterOn}|${termClashFilterOn}|${todayKey_}`;
-  if (renderSig === lastTermRenderSig) return;
-  lastTermRenderSig = renderSig;
+  const search   = (document.getElementById('term-search').value || '').trim().toLowerCase();
+  const subjectF = document.getElementById('term-subject-filter').value || '';
 
-  const all = Object.keys(TT||{}).sort();
-  const months = {};
-  for (const d of all) { const mo=d.substring(0,7); if(!months[mo])months[mo]=[]; months[mo].push(d); }
-
+  const dates = Object.keys(TT).sort();
   let html = '';
-  for (const [mo, dates] of Object.entries(months)) {
-    const moLabel = new Date(mo+'-01').toLocaleString('default',{month:'long',year:'numeric'});
-    html += `<div class="month-group"><div class="month-header">${moLabel}</div>`;
+  let lastMonth = null;
 
-    for (const d of dates) {
-      const sessions = getUserSessions(d);
-      const filtered = sessions.filter(s => {
-        if (termExamFilterOn && !(isQuiz(s.cell) || isExam(s.cell))) return false;
-        if (termClashFilterOn && !s.isClash) return false;
-        // Exact subject match via the dropdown — unlike free text, this
-        // can never accidentally cross-match a different subject just
-        // because that subject's own full name happens to mention this one
-        // (e.g. "FAMA" = "Financial Aspects of M&A" mentions M&A by name).
-        if (subjectFilter && getSessionBaseCode(s.cell) !== subjectFilter) return false;
-        // Free text now only matches the raw code/cell text and room —
-        // deliberately NOT the descriptive course name, which is what
-        // caused FAMA/M&A-style cross-matches. Use the dropdown above to
-        // search by full subject name instead.
-        if (q && !(s.cell.toLowerCase().includes(q) || s.room.toLowerCase().includes(q))) return false;
-        return true;
-      });
-      if (filtered.length===0 && (q || termExamFilterOn || termClashFilterOn || subjectFilter)) continue;
+  const todayKey = dateKey(new Date());
 
-      const dt = new Date(d+'T00:00:00');
-      const isToday = d===todayKey_;
-      const qz = sessions.filter(s=>isQuiz(s.cell)).length;
-      const ex = sessions.filter(s=>isExam(s.cell)).length;
-      const cl = sessions.filter(s=>!isQuiz(s.cell)&&!isExam(s.cell)).length;
+  for (const dateStr of dates) {
+    let sessions = getUserSessions(dateStr);
+    if (sessions.length === 0) continue;
 
-      html += `<div class="calendar-day" id="term-daywrap-${d}">
-        <div class="calendar-day-header ${isToday?'today-header':''}" onclick="toggleDay('${d}')">
-          <div class="cal-date">
-            <div class="cal-date-num">${dt.getDate()}</div>
-            <div>
-              <div class="cal-date-day">${DAYS[dt.getDay()].substring(0,3)}${isToday?'<span class="today-badge">today</span>':''}</div>
-              <div class="cal-date-month">${MONTHS[dt.getMonth()]}</div>
-            </div>
-          </div>
-          <div class="cal-count">
-            ${cl>0?`<span class="dot"></span>${cl} class${cl!==1?'es':''}`:''} 
-            ${qz>0?`<span class="dot dot-quiz"></span>${qz} quiz`:''}
-            ${ex>0?`<span class="dot dot-exam"></span>${ex} exam`:''}
-            ${sessions.length===0?'<span style="color:var(--border)">—</span>':''}
+    if (termExamFilterOn)  sessions = sessions.filter(s => isQuiz(s.cell) || isExam(s.cell));
+    if (termClashFilterOn) sessions = sessions.filter(s => s.isClash);
+    if (subjectF)          sessions = sessions.filter(s => getSessionBaseCode(s.cell) === subjectF);
+    if (search) {
+      sessions = sessions.filter(s =>
+        s.cell.toLowerCase().includes(search) || (s.room && s.room.toLowerCase().includes(search))
+      );
+    }
+    if (sessions.length === 0) continue;
+
+    const d = new Date(dateStr + 'T00:00:00');
+    const monthLabel = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+    if (monthLabel !== lastMonth) {
+      if (lastMonth !== null) html += '</div>';
+      html += `<div class="month-group"><div class="month-header">${monthLabel}</div>`;
+      lastMonth = monthLabel;
+    }
+
+    const isTodayRow = dateStr === todayKey;
+    const nQuiz = sessions.filter(s => isQuiz(s.cell)).length;
+    const nExam = sessions.filter(s => isExam(s.cell)).length;
+    const nClass = sessions.length - nQuiz - nExam;
+
+    html += `<div class="calendar-day" id="calday-${dateStr}">
+      <div class="calendar-day-header ${isTodayRow ? 'today-header' : ''}" onclick="toggleDay('${dateStr}')">
+        <div class="cal-date">
+          <div class="cal-date-num">${d.getDate()}</div>
+          <div>
+            <div class="cal-date-day">${DAYS[d.getDay()]}</div>
+            <div class="cal-date-month">${MONTHS[d.getMonth()]}</div>
           </div>
         </div>
-        <div class="calendar-day-body ${isToday?'open':''}" id="day-${d}">`;
-
-      if (filtered.length===0) {
-        html += `<div style="font-size:12px;color:var(--ink-muted);padding:.5rem 0">No classes</div>`;
-      } else {
-        for (const s of filtered) {
-          const quiz=isQuiz(s.cell), exam=isExam(s.cell);
-          html += `<div class="cal-slot" style="${s.isClash ? 'background:var(--exam-wash);border-radius:6px;padding-left:6px' : ''}">
+        <div class="cal-count">
+          ${nClass > 0 ? `<span><span class="dot"></span> ${nClass}</span>` : ''}
+          ${nQuiz > 0 ? `<span><span class="dot dot-quiz"></span> ${nQuiz}</span>` : ''}
+          ${nExam > 0 ? `<span><span class="dot dot-exam"></span> ${nExam}</span>` : ''}
+        </div>
+      </div>
+      <div class="calendar-day-body ${isTodayRow ? 'open' : ''}" id="calbody-${dateStr}">
+        ${sessions.map(s => `
+          <div class="cal-slot">
             <div class="cal-slot-time">${s.slot.time}</div>
-            <div class="cal-slot-subj" style="color:${quiz?'var(--quiz)':exam?'var(--exam)':'var(--ink)'}">${s.cell}${s.isClash ? ' <span style="color:var(--exam);font-size:10px;font-weight:700">⚠ CLASH</span>' : ''}</div>
+            <div class="cal-slot-subj">${s.cell}${s.isClash ? ' <span class="badge badge-clash" style="margin-left:4px">⚠</span>' : ''}${isQuiz(s.cell) ? ' <span class="badge badge-quiz" style="margin-left:4px">Quiz</span>' : ''}${isExam(s.cell) ? ` <span class="badge badge-exam" style="margin-left:4px">${examLabel(s.cell)}</span>` : ''}</div>
             <div class="cal-slot-room">${s.room}</div>
-          </div>`;
-          if (s.sisterAlt) {
-            html += `<div style="font-size:11px;color:var(--free);padding:2px 0 6px 6px">💡 ${s.sisterAlt.cell} available ${s.sisterAlt.slot.time} · ${s.sisterAlt.room}</div>`;
-            if (CLASH_FORM_URL !== "PASTE_CLASH_FORM_URL_HERE") {
-              html += `<div style="padding:0 0 6px 6px"><a href="${CLASH_FORM_URL}" target="_blank" rel="noopener" class="clash-form-link">📋 Report this clash via the official form</a></div>`;
-            }
-          }
-        }
-      }
-      html += `</div></div>`;
-    }
-    html += `</div>`;
+          </div>`).join('')}
+      </div>
+    </div>`;
   }
+  if (lastMonth !== null) html += '</div>';
 
-  document.getElementById('term-calendar').innerHTML = html || `<div class="empty-state"><div class="empty-icon">🔍</div><p>No results</p></div>`;
+  host.innerHTML = html || `<div class="empty-state"><div class="empty-icon">🔍</div><p>No matching days.</p></div>`;
+  termRenderedVersion = dataVersion;
 }
 
-function toggleDay(d) { document.getElementById('day-'+d).classList.toggle('open'); }
-
-let termExamFilterOn = false;
+function toggleDay(dateStr) {
+  const body = document.getElementById('calbody-' + dateStr);
+  if (body) body.classList.toggle('open');
+}
 
 function toggleTermExamFilter() {
   termExamFilterOn = !termExamFilterOn;
   document.getElementById('term-filter-btn').classList.toggle('active', termExamFilterOn);
   renderTerm();
 }
-
-let termClashFilterOn = false;
 
 function toggleTermClashFilter() {
   termClashFilterOn = !termClashFilterOn;
@@ -2173,133 +2461,108 @@ function toggleTermClashFilter() {
 }
 
 // ─── TABS ─────────────────────────────────────────────────────
-function switchTab(tab, el) {
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tab-today').style.display      = tab==='today'?'block':'none';
-  document.getElementById('tab-term').style.display        = tab==='term'?'block':'none';
-  document.getElementById('tab-finder').style.display      = tab==='finder'?'block':'none';
-  document.getElementById('tab-attendance').style.display  = tab==='attendance'?'block':'none';
+function switchTab(name, btn) {
+  ['today','term','finder','attendance'].forEach(t => {
+    const tab = document.getElementById('tab-' + t);
+    if (tab) tab.style.display = (t === name) ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  if (btn) btn.classList.add('active');
 
-  if (tab==='term') renderTerm();
-  if (tab==='finder') initFinderTab();
-  if (tab==='attendance') renderAttendanceTracker();
+  if (name === 'today') renderToday();
+  if (name === 'term'      && termRenderedVersion       !== dataVersion) renderTerm();
+  if (name === 'finder')    renderFinder();
+  if (name === 'attendance' && attendanceRenderedVersion !== dataVersion) renderAttendanceTracker();
 }
 
-// Manual date-jump only — deliberately not auto-triggered on opening the
-// tab. Smooth-scrolls to the picked day and gives it a brief, gentle
-// highlight fade so landing somewhere doesn't feel abrupt.
-function jumpTermToDate(dateStr) {
-  if (!dateStr) return;
-  const el = document.getElementById('term-daywrap-' + dateStr);
-  if (!el) { showToast("That date isn't in the loaded calendar."); return; }
-  const body = document.getElementById('day-' + dateStr);
+// Jump the Full Term calendar to a specific date: open that day, scroll to
+// it, flash it briefly so the eye lands in the right place.
+function jumpTermToDate(value) {
+  if (!value) return;
+  const el = document.getElementById('calday-' + value);
+  if (!el) { showToast('No classes on that date.', true); return; }
+  const body = document.getElementById('calbody-' + value);
   if (body && !body.classList.contains('open')) body.classList.add('open');
-
-  // .topbar is position:sticky;top:0 — a plain scrollIntoView({block:'start'})
-  // lines the target's top edge up with the very top of the page, which is
-  // exactly where the sticky bar sits, so it covers the top of the card you
-  // just jumped to (the bit with the date number) while the day below it
-  // shows in full. Scroll to an offset that clears the sticky bar instead,
-  // measured live so it stays correct even if the topbar's height changes.
-  const topbar = document.querySelector('.topbar');
-  const clearance = (topbar ? topbar.offsetHeight : 0) + 14;
-  const targetY = el.getBoundingClientRect().top + window.scrollY - clearance;
-  window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
-
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.classList.remove('jump-landing');
-  void el.offsetWidth; // restart the animation even if jumping to the same day twice in a row
+  void el.offsetWidth; // restart the CSS animation
   el.classList.add('jump-landing');
-  setTimeout(() => el.classList.remove('jump-landing'), 1300);
 }
 
 function dateKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
-// ─── FIND A SLOT ────────────────────────────────────────────────
-// Lets the user pick a date + a set of friends, then shows every slot
-// where the whole group (including the user) is free, plus "mostly free"
-// slots where most are free but a few are busy (with their names shown).
-
-let finderSelectedEmails = []; // emails of friends added to the comparison (NOT including self)
+// ─── FIND A SLOT (multi-person free-slot finder) ──────────────
+let finderSelectedEmails = [];
+let finderInitialized = false;
 
 function initFinderTab() {
-  // Default the date picker to "today" (clamped to the term range) if not already set
+  if (finderInitialized) return;
   const dateInput = document.getElementById('finder-date');
-  if (dateInput && !dateInput.value) {
-    dateInput.value = dateKey(getTermTodayDate());
-  }
-  renderFinderChips();
-  renderFinderRecent();
-  renderFinder();
+  if (dateInput && !dateInput.value) dateInput.value = dateKey(getTermTodayDate());
+  finderInitialized = true;
 }
 
-// Build the row of currently-selected people. You are NOT auto-included —
-// you appear here only if you've added yourself via search/recent, same as anyone else.
+// Chips for everyone currently selected. The logged-in user is NOT added
+// automatically — they add themselves like anyone else if they want to be
+// in the comparison (fixed from an earlier build that force-included self).
 function renderFinderChips() {
-  const wrap = document.getElementById('finder-selected-chips');
-
+  const host = document.getElementById('finder-selected-chips');
+  if (!host) return;
   if (finderSelectedEmails.length === 0) {
-    wrap.innerHTML = `<div style="font-size:12px;color:var(--ink-muted)">No one selected yet — search or pick from recent below.</div>`;
+    host.innerHTML = `<div style="font-size:12px;color:var(--ink-faint);padding:.4rem 0">No one added yet — search below to add people (including yourself).</div>`;
     return;
   }
-
-  wrap.innerHTML = finderSelectedEmails.map(email => {
+  host.innerHTML = finderSelectedEmails.map(email => {
     const s = STUDENTS[email];
-    if (!s) return '';
-    const isSelf = email === currentUser.email;
+    const isSelf = currentUser && email === currentUser.email;
     return `<div class="finder-selected-chip">
-      <span>${s.name}</span>${isSelf ? '<span class="you-tag">(you)</span>' : ''}
+      ${s ? s.name : email}${isSelf ? ' <span class="you-tag">(you)</span>' : ''}
       <button onclick="removeFinderPerson('${email}')" title="Remove">✕</button>
     </div>`;
   }).join('');
 }
 
-// Recently-viewed quick-add chips (excludes anyone already added; self CAN appear here)
 function renderFinderRecent() {
-  const recent = getRecentEmails().filter(e =>
-    STUDENTS[e] && !finderSelectedEmails.includes(e)
-  );
-  const section = document.getElementById('finder-recent-section');
-  const wrap = document.getElementById('finder-recent-chips');
-
-  if (recent.length === 0) {
-    section.style.display = 'none';
-    return;
+  const host = document.getElementById('finder-recent-chips');
+  if (!host) return;
+  // Offer recents + self as quick-add chips (minus anyone already added).
+  const pool = [];
+  if (currentUser && !finderSelectedEmails.includes(currentUser.email)) pool.push(currentUser.email);
+  for (const e of getRecentEmails()) {
+    if (e !== (currentUser && currentUser.email) && STUDENTS[e] && !finderSelectedEmails.includes(e)) pool.push(e);
   }
-  section.style.display = 'block';
-  wrap.innerHTML = recent.map(email => {
+  if (pool.length === 0) { host.innerHTML = `<div style="font-size:12px;color:var(--ink-faint)">—</div>`; return; }
+  host.innerHTML = pool.map(email => {
     const s = STUDENTS[email];
-    return `<button class="finder-recent-chip-btn" onclick="addFinderPerson('${email}')">+ ${s.name}</button>`;
+    const isSelf = currentUser && email === currentUser.email;
+    return `<button class="finder-recent-chip-btn" onclick="addFinderPerson('${email}')">+ ${s ? s.name : email}${isSelf ? ' (you)' : ''}</button>`;
   }).join('');
 }
 
-// Live search-as-you-type for adding any of the 556 students (including yourself)
 function renderFinderSearch() {
+  const host = document.getElementById('finder-search-results');
+  if (!host) return;
   const q = (document.getElementById('finder-search-input').value || '').trim().toLowerCase();
-  const results = document.getElementById('finder-search-results');
+  if (!q) { host.innerHTML = ''; return; }
 
-  if (q.length < 2) { results.innerHTML = ''; return; }
+  const matches = Object.keys(STUDENTS).filter(email => {
+    const s = STUDENTS[email];
+    return email.includes(q) || (s.name && s.name.toLowerCase().includes(q)) || (s.roll && s.roll.toLowerCase().includes(q));
+  }).slice(0, 30);
 
-  const matches = Object.entries(STUDENTS)
-    .filter(([email, s]) =>
-      s.name.toLowerCase().includes(q) || email.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q)
-    )
-    .slice(0, 8);
+  if (matches.length === 0) { host.innerHTML = `<div style="font-size:12px;color:var(--ink-faint);padding:.5rem">No matches.</div>`; return; }
 
-  if (matches.length === 0) {
-    results.innerHTML = `<div style="font-size:12px;color:var(--ink-muted);padding:.5rem">No matches</div>`;
-    return;
-  }
-
-  results.innerHTML = matches.map(([email, s]) => {
+  host.innerHTML = matches.map(email => {
+    const s = STUDENTS[email];
     const added = finderSelectedEmails.includes(email);
-    const isSelf = email === currentUser.email;
-    const displayName = isSelf ? `${s.name} (you)` : s.name;
-    return `<div class="finder-search-result-item ${added?'is-added':''}" onclick="${added?'':`addFinderPerson('${email}')`}">
+    return `<div class="finder-search-result-item ${added ? 'is-added' : ''}" ${added ? '' : `onclick="addFinderPerson('${email}')"`}>
       <div>
-        <div class="finder-result-name">${displayName}</div>
+        <div class="finder-result-name">${s.name}</div>
         <div class="finder-result-roll">${s.roll}</div>
       </div>
       <div class="finder-add-icon">${added ? '✓' : '+'}</div>
@@ -2308,11 +2571,10 @@ function renderFinderSearch() {
 }
 
 function addFinderPerson(email) {
-  if (!finderSelectedEmails.includes(email)) {
-    finderSelectedEmails.push(email);
-  }
+  if (!STUDENTS[email] || finderSelectedEmails.includes(email)) return;
+  finderSelectedEmails.push(email);
   document.getElementById('finder-search-input').value = '';
-  document.getElementById('finder-search-results').innerHTML = '';
+  renderFinderSearch();
   renderFinderChips();
   renderFinderRecent();
   renderFinder();
@@ -2322,43 +2584,35 @@ function removeFinderPerson(email) {
   finderSelectedEmails = finderSelectedEmails.filter(e => e !== email);
   renderFinderChips();
   renderFinderRecent();
+  renderFinderSearch();
   renderFinder();
 }
 
-// A person is "busy" in a slot if they have ANY class, quiz, or exam in it
+// Does a given person have any session in a given slot on a given day?
 function isPersonBusyInSlot(email, dateStr, slotKey) {
-  const day = TT[dateStr] || {};
-  for (const slots of Object.values(day)) {
+  const day = TT[dateStr];
+  if (!day) return false;
+  for (const [room, slots] of Object.entries(day)) {
     const cell = slots[slotKey];
-    if (!cell) continue;
-    if (personHasSubject(email, cell)) return true;
+    if (cell && personHasSubject(email, cell)) return true;
   }
   return false;
 }
 
-// Same matching logic as userHasSubject(), but parameterized by email
-// instead of relying on the globally logged-in currentUser.
+// Same matching logic as userHasSubject but for an arbitrary person.
 function personHasSubject(email, cell) {
-  const student = STUDENTS[email];
-  if (!student || !cell) return false;
+  const s = STUDENTS[email];
+  if (!s || !cell) return false;
   const c = cell.trim();
-
   if (/^(Q\d+[-]|ET[-]|MT[-])/i.test(c)) {
     const code = c.replace(/^(Q\d+[-]|ET[-]|MT[-])/i, '').split(/\s/)[0];
-    return student.courses.some(sub => {
-      const base = sub.replace(/[-]([A-Z])$/i, '');
-      return code.toLowerCase() === base.toLowerCase();
-    });
+    return s.courses.some(sub => code.toLowerCase() === sub.replace(/[-]([A-Z])$/i,'').toLowerCase());
   }
-
   const parts = c.split(/\s+/);
-  const subjectCode = parts[0];
-  const sectionChar = parts[1];
-
-  return student.courses.some(sub => {
-    const subBase    = sub.replace(/[-]([A-Z])$/i, '').toLowerCase();
+  const subjectCode = parts[0], sectionChar = parts[1];
+  return s.courses.some(sub => {
+    const subBase = sub.replace(/[-]([A-Z])$/i,'').toLowerCase();
     const subSection = (sub.match(/[-]([A-Z])$/i) || [])[1] || null;
-
     if (subjectCode.toLowerCase() !== subBase) return false;
     if (!subSection) return true;
     if (sectionChar === 'A&B') return true;
@@ -2368,208 +2622,165 @@ function personHasSubject(email, cell) {
 }
 
 function renderFinder() {
-  const dateStr = document.getElementById('finder-date').value;
-  const results = document.getElementById('finder-results');
-  if (!dateStr) { results.innerHTML = ''; return; }
+  initFinderTab();
+  renderFinderChips();
+  renderFinderRecent();
 
+  const host = document.getElementById('finder-results');
+  if (!host) return;
+
+  const dateStr = document.getElementById('finder-date').value;
+  if (!dateStr) { host.innerHTML = `<div class="finder-empty-hint">Pick a date to see free slots.</div>`; return; }
   if (finderSelectedEmails.length === 0) {
-    results.innerHTML = `<div class="finder-empty-hint">Add yourself and/or friends above to see common free slots.</div>`;
+    host.innerHTML = `<div class="finder-empty-hint">Add at least one person (search above, or add yourself) to compare free slots.</div>`;
     return;
   }
 
-  const allEmails = finderSelectedEmails;
+  // Only the real teaching slots — skip the lunch-break pseudo-slot.
+  const teachingSlots = SLOTS.filter(s => s.key !== 'sB');
 
   let html = '';
+  for (const slot of teachingSlots) {
+    const busyPeople = finderSelectedEmails.filter(email => isPersonBusyInSlot(email, dateStr, slot.key));
+    const freeCount = finderSelectedEmails.length - busyPeople.length;
+    const allFree = busyPeople.length === 0;
+    const noneFree = freeCount === 0;
 
-  for (const slot of SLOTS) {
-    const busyPeople = allEmails.filter(email => isPersonBusyInSlot(email, dateStr, slot.key));
-    const freeCount  = allEmails.length - busyPeople.length;
-    const busyNames  = busyPeople.map(e => STUDENTS[e] ? STUDENTS[e].name : e);
+    let cardCls = 'finder-slot-card', badgeCls = 'partial', badgeTxt = `${freeCount}/${finderSelectedEmails.length} free`;
+    if (allFree)      { cardCls += ' all-free';     badgeCls = 'all';     badgeTxt = '✓ Everyone free'; }
+    else if (noneFree){ cardCls += ' none-free';    badgeCls = 'none';    badgeTxt = 'No one free'; }
+    else              { cardCls += ' partial-free'; }
 
-    if (freeCount === allEmails.length) {
-      // Everyone free
-      html += `<div class="finder-slot-card all-free">
-        <div class="finder-slot-header">
-          <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
-          <span class="finder-slot-badge all">✓ Everyone free</span>
-        </div>
-      </div>`;
-    } else if (freeCount > 0) {
-      // Mostly free — show who's busy
-      html += `<div class="finder-slot-card partial-free">
-        <div class="finder-slot-header">
-          <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
-          <span class="finder-slot-badge partial">${freeCount}/${allEmails.length} free</span>
-        </div>
-        <div class="finder-busy-list">Busy: ${busyNames.map(n => `<span class="busy-name">${n}</span>`).join(', ')}</div>
-      </div>`;
-    } else {
-      // Everyone busy — show it, don't skip it
-      html += `<div class="finder-slot-card none-free">
-        <div class="finder-slot-header">
-          <span class="finder-slot-time">${slot.label} · ${slot.time}</span>
-          <span class="finder-slot-badge none">${freeCount}/${allEmails.length} free</span>
-        </div>
-        <div class="finder-busy-list">Busy: ${busyNames.map(n => `<span class="busy-name">${n}</span>`).join(', ')}</div>
-      </div>`;
-    }
+    const busyNames = busyPeople.map(email => {
+      const s = STUDENTS[email];
+      const isSelf = currentUser && email === currentUser.email;
+      return `<span class="busy-name">${s ? s.name.split(' ')[0] : email}${isSelf ? ' (you)' : ''}</span>`;
+    }).join(', ');
+
+    html += `<div class="${cardCls}">
+      <div class="finder-slot-header">
+        <div class="finder-slot-time">${slot.label} · ${slot.time}</div>
+        <div class="finder-slot-badge ${badgeCls}">${badgeTxt}</div>
+      </div>
+      ${busyPeople.length > 0 ? `<div class="finder-busy-list">Busy: ${busyNames}</div>` : `<div class="finder-busy-list">Everyone is free this slot.</div>`}
+    </div>`;
   }
 
-  results.innerHTML = html;
+  host.innerHTML = html;
 }
 
-// ─── VIEW A FRIEND'S SCHEDULE ───────────────────────────────────
-// Separate from the Scheduler tab's multi-person comparison — this shows
-// one friend's actual day, using the same slot-card look as Today. Calls
-// the token-gated getFriendSchedule action; never touches anything but
-// schedule data for whoever's selected.
-let friendViewData = null;  // { name, roll, courses, schedule } from the last successful lookup
-let friendViewDate = null;  // this overlay's own date cursor — separate from the main Today tab's viewDate
+// ─── FRIEND SCHEDULE VIEWER ───────────────────────────────────
+let friendViewData = null;      // { email, viewDate }
+const LS_FRIEND_RECENT = "t4_friend_recent";
 
-const LS_FRIEND_RECENT  = "t4_friend_recent_emails";
-const MAX_FRIEND_RECENT = 5;
-
-function getFriendRecentEmails() {
-  try { const raw = localStorage.getItem(LS_FRIEND_RECENT); return raw ? JSON.parse(raw) : []; }
-  catch (e) { return []; }
+function getFriendRecent() {
+  try { const r = localStorage.getItem(LS_FRIEND_RECENT); return r ? JSON.parse(r) : []; } catch(e) { return []; }
 }
-
-function saveFriendRecentEmail(email) {
+function saveFriendRecent(email) {
   try {
-    let recent = getFriendRecentEmails().filter(e => e !== email);
-    recent.unshift(email);
-    recent = recent.slice(0, MAX_FRIEND_RECENT);
-    localStorage.setItem(LS_FRIEND_RECENT, JSON.stringify(recent));
-  } catch (e) { /* localStorage unavailable — fail silently */ }
+    let r = getFriendRecent().filter(e => e !== email);
+    r.unshift(email); r = r.slice(0, MAX_RECENT);
+    localStorage.setItem(LS_FRIEND_RECENT, JSON.stringify(r));
+  } catch(e) {}
 }
 
 function openFriendView() {
-  friendViewData = null;
-  document.getElementById('friend-view-error').style.display = 'none';
-  document.getElementById('friend-result-stage').style.display = 'none';
+  document.getElementById('friend-view-overlay').style.display = 'flex';
   document.getElementById('friend-search-stage').style.display = 'block';
+  document.getElementById('friend-result-stage').style.display = 'none';
+  document.getElementById('friend-view-error').style.display = 'none';
   document.getElementById('friend-view-search-input').value = '';
   document.getElementById('friend-view-search-results').innerHTML = '';
   renderFriendViewRecent();
-  document.getElementById('friend-view-overlay').style.display = 'flex';
 }
 
 function closeFriendView() {
   document.getElementById('friend-view-overlay').style.display = 'none';
+  friendViewData = null;
 }
 
 function backToFriendSearch() {
-  friendViewData = null;
-  document.getElementById('friend-view-error').style.display = 'none';
-  document.getElementById('friend-result-stage').style.display = 'none';
   document.getElementById('friend-search-stage').style.display = 'block';
+  document.getElementById('friend-result-stage').style.display = 'none';
+  document.getElementById('friend-view-error').style.display = 'none';
   renderFriendViewRecent();
 }
 
 function renderFriendViewRecent() {
-  const recent  = getFriendRecentEmails().filter(e => STUDENTS[e] && e !== currentUser.email);
-  const section = document.getElementById('friend-view-recent-section');
-  const wrap    = document.getElementById('friend-view-recent-chips');
-
-  if (recent.length === 0) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  wrap.innerHTML = recent.map(email => {
+  const host = document.getElementById('friend-view-recent-chips');
+  if (!host) return;
+  const recent = getFriendRecent().filter(e => STUDENTS[e]);
+  if (recent.length === 0) { host.innerHTML = `<div style="font-size:12px;color:var(--ink-faint)">—</div>`; return; }
+  host.innerHTML = recent.map(email => {
     const s = STUDENTS[email];
     return `<button class="finder-recent-chip-btn" onclick="selectFriendForView('${email}')">${s.name}</button>`;
   }).join('');
 }
 
-// Live search-as-you-type, same pattern as the Scheduler tab's friend search
 function renderFriendViewSearch() {
+  const host = document.getElementById('friend-view-search-results');
+  if (!host) return;
   const q = (document.getElementById('friend-view-search-input').value || '').trim().toLowerCase();
-  const results = document.getElementById('friend-view-search-results');
-  if (q.length < 2) { results.innerHTML = ''; return; }
-
-  const matches = Object.entries(STUDENTS)
-    .filter(([email, s]) => email !== currentUser.email &&
-      (s.name.toLowerCase().includes(q) || email.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q)))
-    .slice(0, 8);
-
-  if (matches.length === 0) {
-    results.innerHTML = `<div style="font-size:12px;color:var(--ink-muted);padding:.5rem">No matches</div>`;
-    return;
-  }
-
-  results.innerHTML = matches.map(([email, s]) => `
-    <div class="finder-search-result-item" onclick="selectFriendForView('${email}')">
+  if (!q) { host.innerHTML = ''; return; }
+  const matches = Object.keys(STUDENTS).filter(email => {
+    const s = STUDENTS[email];
+    return email.includes(q) || (s.name && s.name.toLowerCase().includes(q)) || (s.roll && s.roll.toLowerCase().includes(q));
+  }).slice(0, 30);
+  if (matches.length === 0) { host.innerHTML = `<div style="font-size:12px;color:var(--ink-faint);padding:.5rem">No matches.</div>`; return; }
+  host.innerHTML = matches.map(email => {
+    const s = STUDENTS[email];
+    return `<div class="finder-search-result-item" onclick="selectFriendForView('${email}')">
       <div>
         <div class="finder-result-name">${s.name}</div>
         <div class="finder-result-roll">${s.roll}</div>
       </div>
       <div class="finder-add-icon">→</div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-async function selectFriendForView(email) {
-  if (!STUDENTS[email]) return;
-
-  document.getElementById('friend-view-error').style.display = 'none';
+function selectFriendForView(email) {
+  if (!STUDENTS[email]) { showFriendViewError('Student not found.'); return; }
+  saveFriendRecent(email);
+  friendViewData = { email, viewDate: new Date(getTermTodayDate()) };
   document.getElementById('friend-search-stage').style.display = 'none';
   document.getElementById('friend-result-stage').style.display = 'block';
-  document.getElementById('friend-name-banner').textContent = 'Loading…';
-  document.getElementById('friend-view-slots').innerHTML = '';
-
-  try {
-    const res = await postAction({
-      action: 'getFriendSchedule',
-      email: currentUser.email,
-      token: currentToken,
-      targetEmail: email,
-    });
-
-    if (!res.success) {
-      document.getElementById('friend-result-stage').style.display = 'none';
-      document.getElementById('friend-search-stage').style.display = 'block';
-      showFriendViewError(res.error === 'invalid_token'
-        ? 'Your session needs refreshing — sign out and back in, then try again.'
-        : "Couldn't load that schedule. Try again.");
-      return;
-    }
-
-    friendViewData = res;
-    friendViewDate = new Date(viewDate); // start on whichever day the Today tab is currently showing
-    saveFriendRecentEmail(email);
-    renderFriendView();
-  } catch (e) {
-    document.getElementById('friend-result-stage').style.display = 'none';
-    document.getElementById('friend-search-stage').style.display = 'block';
-    showFriendViewError('Could not reach the server. Check your connection and try again.');
-  }
+  renderFriendView();
 }
 
 function showFriendViewError(msg) {
   const el = document.getElementById('friend-view-error');
-  el.textContent = msg;
-  el.style.display = 'block';
+  el.textContent = msg; el.style.display = 'block';
 }
 
 function changeFriendDay(n) {
-  friendViewDate = new Date(friendViewDate);
-  friendViewDate.setDate(friendViewDate.getDate() + n);
+  if (!friendViewData) return;
+  const next = new Date(friendViewData.viewDate);
+  next.setDate(next.getDate() + n);
+  // Friend view uses the shared term floor and the VIEWER's own end bound
+  // isn't meaningful here (different person), so just clamp to term start
+  // and the last date present in the grid.
+  const startKey = dateKey(TERM_START);
+  const nextKey  = dateKey(next);
+  if (nextKey < startKey) return;
+  friendViewData.viewDate = next;
   renderFriendView();
 }
 
-// Friend's schedule arrives already filtered to their own courses
-// server-side, so unlike getUserSessions() there's no course-matching to
-// redo here — just collect whatever cells exist for the day.
-function getFriendSessions(dateStr) {
-  if (!friendViewData) return [];
-  const day = friendViewData.schedule[dateStr] || {};
+// Friend's sessions for a date — same logic as getUserSessions but keyed
+// to a specified person instead of the logged-in user.
+function getFriendSessions(email, dateStr) {
+  if (!TT) return [];
+  const day = TT[dateStr] || {};
   const results = [];
   const seen = new Set();
-
   for (const slot of SLOTS) {
     for (const [room, slots] of Object.entries(day)) {
       const cell = slots[slot.key];
-      if (!cell) continue;
-      const key = slot.key + '|' + cell;
-      if (seen.has(key)) continue;
-      seen.add(key);
+      if (!cell || !personHasSubject(email, cell)) continue;
+      const k = slot.key + '|' + cell;
+      if (seen.has(k)) continue;
+      seen.add(k);
       results.push({ slot, room, cell });
     }
   }
@@ -2578,44 +2789,45 @@ function getFriendSessions(dateStr) {
 
 function renderFriendView() {
   if (!friendViewData) return;
+  const { email, viewDate: fvDate } = friendViewData;
+  const s = STUDENTS[email];
+  if (!s) return;
 
-  const key      = dateKey(friendViewDate);
-  const isToday  = dateKey(new Date()) === key;
-  const nowSlot  = getCurrentSlot();
-  const sessions = getFriendSessions(key);
+  const key = dateKey(fvDate);
+  const isToday = dateKey(new Date()) === key;
 
-  document.getElementById('friend-name-banner').innerHTML =
-    `${friendViewData.name} <span style="color:var(--ink-muted);font-weight:400">· ${friendViewData.roll}</span>`;
-  document.getElementById('friend-view-day-name').textContent = DAYS[friendViewDate.getDay()];
+  document.getElementById('friend-view-day-name').textContent = DAYS[fvDate.getDay()];
   document.getElementById('friend-view-date-full').innerHTML =
-    friendViewDate.getDate() + ' ' + MONTHS[friendViewDate.getMonth()] + ' ' + friendViewDate.getFullYear() +
+    fvDate.getDate() + ' ' + MONTHS[fvDate.getMonth()] + ' ' + fvDate.getFullYear() +
     (isToday ? '<span class="today-badge">today</span>' : '');
+  document.getElementById('friend-name-banner').textContent = `${s.name} · ${s.roll}`;
 
-  const container = document.getElementById('friend-view-slots');
+  const sessions = getFriendSessions(email, key);
+  const host = document.getElementById('friend-view-slots');
+  const nowSlot = getCurrentSlot();
+
   if (sessions.length === 0) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for ${friendViewData.name.split(' ')[0]}'s courses</p></div>`;
+    host.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for ${s.name.split(' ')[0]}</p></div>`;
     return;
   }
 
-  container.innerHTML = sessions.map(s => {
-    const quiz = isQuiz(s.cell), exam = isExam(s.cell);
-    const isCurrent = isToday && s.slot.key === nowSlot;
-    const fullName = getCourseName(s.cell);
+  host.innerHTML = sessions.map(sess => {
+    const quiz = isQuiz(sess.cell), exam = isExam(sess.cell);
+    const isCurrent = isToday && sess.slot.key === nowSlot;
+    const fullName = getCourseName(sess.cell);
     let cls = 'slot-card';
-    if (quiz) cls += ' is-quiz';
-    else if (exam) cls += ' is-exam';
+    if (quiz) cls += ' is-quiz'; else if (exam) cls += ' is-exam';
     if (isCurrent) cls += ' is-now';
-
     return `<div class="${cls}">
-      <div class="slot-time">${s.slot.time.replace('–','–<br>')}</div>
+      <div class="slot-time">${sess.slot.time.replace('–','–<br>')}</div>
       <div class="slot-main">
-        <div class="slot-subject">${s.cell}</div>
+        <div class="slot-subject">${sess.cell}</div>
         ${fullName ? `<div class="slot-subject-full">${fullName}</div>` : ''}
         <div class="slot-meta">
-          <span class="badge badge-room">📍 ${s.room}</span>
-          <span class="badge badge-slot">${s.slot.label}</span>
+          <span class="badge badge-room">📍 ${sess.room}</span>
+          <span class="badge badge-slot">${sess.slot.label}</span>
           ${quiz ? '<span class="badge badge-quiz">Quiz</span>' : ''}
-          ${exam ? `<span class="badge badge-exam">${examLabel(s.cell)}</span>` : ''}
+          ${exam ? `<span class="badge badge-exam">${examLabel(sess.cell)}</span>` : ''}
           ${isCurrent ? '<span class="badge badge-now">Now</span>' : ''}
         </div>
       </div>
@@ -2623,8 +2835,7 @@ function renderFriendView() {
   }).join('');
 }
 
-
-// ─── INIT ─────────────────────────────────────────────────────
+// ─── BOOT ─────────────────────────────────────────────────────
 loadData();
 </script>
 </body>

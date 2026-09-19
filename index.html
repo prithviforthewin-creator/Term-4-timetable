@@ -954,6 +954,31 @@ const BLOCK_WINDOWS = {
            label: "24 Oct – 1 Nov", blurb: "7-day Himalayan trek" },
 };
 
+// ─── SPECIAL "ZERO CLASSES" BANNER ────────────────────────────
+// A small personal touch for a specific handful of accounts — when their
+// Today tab has no classes, they get an extra golden banner (same
+// restrained gold as trek week, reusing .trek-banner) above the usual
+// empty-state message. Matched by roll number where known, by email
+// otherwise (kept lowercase — currentUser.email always is). Add someone
+// new by adding one line to whichever array fits what you have for them.
+const ZERO_CLASS_BANNER_ROLLS = [
+  '2025PGP292', // Prithviraj Panda
+  '2025PGP038', // Anahita Bansal
+];
+const ZERO_CLASS_BANNER_EMAILS = [
+  'p25kishanj@iimidr.ac.in',  // Kishan Jayaswal
+  'p25priyankay@iimidr.ac.in', // Priyanka Yadav
+  'p25akanshs@iimidr.ac.in',  // Akansh Shankar
+  'p25khushic@iimidr.ac.in',  // Khushi Choudhary
+];
+
+function isSpecialZeroClassAccount() {
+  if (!currentUser) return false;
+  if (currentUser.roll && ZERO_CLASS_BANNER_ROLLS.includes(currentUser.roll)) return true;
+  if (currentUser.email && ZERO_CLASS_BANNER_EMAILS.includes(currentUser.email.toLowerCase())) return true;
+  return false;
+}
+
 const DAYS   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
@@ -2140,9 +2165,14 @@ function renderToday() {
     // isn't really "empty" — suppress the empty-state so the trek card
     // stands alone rather than sitting above a "no classes" message.
     const hasBlockCard = document.getElementById('today-block-cards').innerHTML.trim() !== '';
-    container.innerHTML = hasBlockCard
-      ? ''
-      : `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
+    if (hasBlockCard) {
+      container.innerHTML = '';
+    } else {
+      const banner = isSpecialZeroClassAccount()
+        ? `<div class="trek-banner">🎉 Zero classes today — enjoy the day off!</div>`
+        : '';
+      container.innerHTML = banner + `<div class="empty-state"><div class="empty-icon">📭</div><p>No classes on this day for your courses</p></div>`;
+    }
     return;
   }
 
